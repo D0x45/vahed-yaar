@@ -59,7 +59,7 @@ function sanitizeFarsi(str) {
     for (const [key, value] of Object.entries(diff)) {
         str = str.replaceAll(key, value);
     }
-    return str.replaceAll(/[\s]{2,}/g, ' ');
+    return str.replaceAll(/[\s]{2,}/g, ' ').trim();
 }
 
 /** @returns {undefined|import('./types').DayOfWeek} */
@@ -184,12 +184,25 @@ async function parseXLSX(
     return items;
 }
 
+/**
+ * @param {import('./types').Time} a
+ * @param {import('./types').Time} b
+ * @returns {boolean}
+ */
+function timeEq(a, b) {
+    return (a.hour === b.hour)
+        && (a.minute === b.minute);
+}
+
 /** @type {import('./types').ClassInfoValueToStr<'sessions'>} */
 function defaultSessionToStr() {
     const m0 = this.starts.minute ? `:${padLeft(this.starts.minute)}` : '';
     const m1 = this.ends.minute   ? `:${padLeft(this.ends.minute)}`   : '';
     // ! TODO: missing fields place and dates
-    return `${dayToStr(this.day)} ${this.starts.hour}${m0} تا ${this.ends.hour}${m1}`;
+    let tmp = `${dayToStr(this.day)} ${this.starts.hour}${m0} تا ${this.ends.hour}${m1} `;
+    if (this.place) tmp += `(${this.place}) `;
+    if (this.dates) tmp += this.dates === 'odd' ? '[فرد]' : '[زوج]';
+    return tmp.trim();
 };
 
 /** @type {import('./types').ClassInfoValueToStr<'exams'>} */
@@ -206,6 +219,7 @@ export {
     dayFromStr,
     dayToStr,
     padLeft,
+    timeEq,
     parseXLSX,
     defaultExamToStr,
     defaultSessionToStr,

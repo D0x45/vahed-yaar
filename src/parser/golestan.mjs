@@ -1,7 +1,7 @@
 // @ts-check
 import {
     sanitizeFarsi, defaultEmptyCell, dayFromStr,
-    defaultSessionToStr, defaultExamToStr
+    defaultSessionToStr, defaultExamToStr, timeEq
 } from './utils.mjs';
 
 /** @type {import('./types').ExcelColumnMapper} */
@@ -28,11 +28,50 @@ const defaultAssigners = [
         o.teachers.includes(sv) || o.teachers.push(sv);
     },
     /* N */ (value, o) => {
-        const [type, items] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
+        const [type, item] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
         if (type === undefined) return;
-        // ! TODO: merge even and odd sessions at the same time and date
-        // @ts-ignore no
-        o[type].push(...items);
+        // check for duplicate odd/even sessions on the same date
+        // for instance there are two sessions on Mondays 10 to 12
+        // one with {date: odd} and the other with {date: even}
+        // these two must be merged into one {date: undefined}
+        // also duplicate values are ignored
+        if (type === 'sessions') {
+            for (let i = 0; i < o.sessions.length; ++i) {
+                if (
+                       o.sessions[i].day === item.day
+                    && timeEq(o.sessions[i].starts, item.starts)
+                    && timeEq(o.sessions[i].ends, item.ends)
+                ) {
+                    // possible cases:
+                    // +------------+------------+
+                    // | session[i] |  new_item  |
+                    // +------------+------------+
+                    // |    odd     |  undefined |
+                    // |   even     |  undefined |
+                    // | undefined  |     odd    |
+                    // | undefined  |    even    |
+                    // |    odd     |    even    |
+                    // |    even    |     odd    |
+                    // +------------+------------+
+                    if (o.sessions[i].dates !== item.dates) {
+                        o.sessions[i].dates = undefined;
+                        // although this if statement is inside a loop,
+                        // the possibility of reaching another item with
+                        // the same properties is highly unlikely (unless something is really wrong)
+                        // so returning here after modifying the original value
+                        // is the best thing, since we do not need to push a new item to the list
+                        return;
+                    }
+                    // other possible cases that are ignored,
+                    // since they don't affect the logic:
+                    // undefined <=> undefined
+                    // odd       <=> odd
+                    // even      <=> even
+                }
+            }
+        }
+        // @ts-ignore
+        o[type].push(item);
     }
 ];
 
@@ -51,7 +90,7 @@ const defaultGetRowId = (rowValues) => {
  * @param {any} raw
  * @param {import('./types').ClassInfoValueToStr<'sessions'>} sessionToStr
  * @param {import('./types').ClassInfoValueToStr<'exams'>} examToStr
- * @returns {[undefined, undefined] | ['exams', import('./types').ClassInfo['exams']] | ['sessions', import('./types').ClassInfo['sessions']]}
+ * @returns { [undefined, undefined] | ['exams', import('./types').ClassInfo['exams'][0]] | ['sessions', import('./types').ClassInfo['sessions'][0]] }
  */
 function parseExamOrSession(raw, sessionToStr, examToStr) {
     if (
@@ -79,14 +118,14 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
         const session = {
             starts: { hour: timeSpanValues[0][0], minute: timeSpanValues[0][1] },
             ends:   { hour: timeSpanValues[1][0], minute: timeSpanValues[1][1] },
+            /** @type {undefined|'odd'|'even'} */
             dates: (oddOrEvenFlag === 'ز') ? 'even' : (oddOrEvenFlag === 'ف' ? 'odd' : undefined),
             day: dayFromStr(dayStr),
-            place: place || undefined
+            place: place ? sanitizeFarsi(place) : undefined
         };
         session.toString = sessionToStr;
 
-        // @ts-ignore no
-        return [ 'sessions', [session] ];
+        return ['sessions', session];
     }
 
     if (raw.startsWith('امتحان')) {
@@ -101,8 +140,7 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
         };
         exam.toString = examToStr;
 
-        // @ts-ignore why
-        return [ 'exams', [exam] ];
+        return ['exams', exam];
     }
 
     return [undefined, undefined];
@@ -110,5 +148,5 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
 
 export default {
     defaultAssigners,
-    defaultGetRowId
+    defaultGetRowId,
 };
