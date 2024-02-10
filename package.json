@@ -3,6 +3,7 @@
   "private": true,
   "devDependencies": {
     "css-loader": "^6.10.0",
+    "exceljs": "^4.4.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.6.0",
     "postcss": "^8.4.35",
