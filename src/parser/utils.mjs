@@ -23,7 +23,7 @@ const classInfoKeyTitles = {
     credit: 'واحد',
     exams: 'آزمون',
     sessions: 'کلاس',
-    teacher: 'استاد'
+    teachers: 'استاد'
 };
 
 const diff = {
@@ -50,7 +50,9 @@ const diff = {
     '٩': '۹',
     '(': ' ',
     ')': ' ',
+    '-': ' ',
     '\u200c': ' ',
+    '\u200f': ' ',
 };
 
 function sanitizeFarsi(str) {
@@ -66,6 +68,7 @@ function dayFromStr(farsi) {
         case 'شنبه': return 0;
 
         case 'یکشنبه':
+        case 'يك شنبه':
         case 'یک شنبه':
         case 'يك‌شنبه': return 1;
 
@@ -104,9 +107,14 @@ function padLeft(num, len = 2, p = '0') {
  *
  * @param {ArrayBuffer} input
  * @param {import('./types').ExcelColumnMapper} assigners
- * @returns {Promise<undefined|Record<string, import('./types').ClassInfo>>}
+ * @param {(rowValues: any[]) => string} getUniqueId this helps preventing data duplication and merging duplicates
+ * @returns {Promise<undefined|Array<import('./types').ClassInfo>>}
  */
-async function parseXLSX(input, assigners) {
+async function parseXLSX(
+    input,
+    assigners,
+    getUniqueId
+) {
     const wb = new ExcelJS.Workbook;
     await wb.xlsx.load(
         input,
@@ -117,7 +125,13 @@ async function parseXLSX(input, assigners) {
         return undefined;
 
     const sheet = wb.worksheets[0];
-    const items = {};
+
+    /** @type {Array<import('./types').ClassInfo>} */
+    const items = new Array();
+
+    /** @type {Record<string, number>} map item IDs to index numbers! */
+    const idxMap = {};
+
     for (
         // indexing starts at 1
         // also first row is the header
@@ -127,36 +141,46 @@ async function parseXLSX(input, assigners) {
         ++i
     ) {
         const row = sheet.getRow(i);
-        const tmpClassInfo = {};
 
         // check for invalid row
-        if (!Array.isArray(row.values) || row.values.length < assigners.length) {
+        if (!row.hasValues || !Array.isArray(row.values) || row.values.length < assigners.length) {
             console.warn(`row ${i} has length of ${row.values.length} which is less than assigners.length=${assigners.length}`);
             continue;
         }
+
+        const rowId = getUniqueId(row.values);
+        const itemIdx = typeof idxMap[rowId] === 'number'
+            // an item with the same id exists, yay!
+            ? idxMap[rowId]
+            // acquire the last index of the array since we are pushing items to the end
+            : (idxMap[rowId] = items.length);
+
+        // init the empty class info
+        if (items[itemIdx] === undefined)
+            items[itemIdx] = {
+                id: 0,
+                campusId: 0,
+                courseId: 0,
+                capacity: 0,
+                courseTitle: '',
+                courseType: undefined,
+                campus: '',
+                credit: undefined,
+                teachers: [],
+                exams: [],
+                sessions: [],
+            };
 
         assigners.forEach(
             (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
                 row.values[index + 1],
                 //               ^^^ the reason i applied this offset is that,
                 // exceljs gives an undefined value for index 0 of every row.values
-                // @ts-ignore i know, please, just shut up
-                tmpClassInfo
+                items[itemIdx]
             )
         );
-
-        const classInfoKey = `${tmpClassInfo.id}`;
-        // golestan produces multiple rows for exams/sessions
-        // that results in multiple duplicate values with only different sessions
-        // so every time you should check if it is already processed and then merge the new ones
-        if (typeof items[classInfoKey] === 'undefined') items[classInfoKey] = tmpClassInfo;
-        else {
-            items[classInfoKey]['sessions'].push(...tmpClassInfo.sessions);
-            items[classInfoKey]['exams'].push(...tmpClassInfo.exams);
-        }
     }
 
-     // @ts-ignore i have no idea
     return items;
 }
 
@@ -164,6 +188,7 @@ async function parseXLSX(input, assigners) {
 function defaultSessionToStr() {
     const m0 = this.starts.minute ? `:${padLeft(this.starts.minute)}` : '';
     const m1 = this.ends.minute   ? `:${padLeft(this.ends.minute)}`   : '';
+    // ! TODO: missing fields place and dates
     return `${dayToStr(this.day)} ${this.starts.hour}${m0} تا ${this.ends.hour}${m1}`;
 };
 

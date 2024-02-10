@@ -14,10 +14,23 @@ const defaultAssigners = [
     /* F */ (value, o) => o.capacity = +value || 0,
     /* G */ (value, o) => o.campusId = +value || 0,
     /* H */ (value, o) => o.campus = value ? sanitizeFarsi(value) : defaultEmptyCell,
-    /* I */ (value, o) => o.teacher = value ? sanitizeFarsi(value) : defaultEmptyCell,
+    /* I */ (value, o) => {
+        if (value) o.teachers.push(sanitizeFarsi(value));
+    },
     /* J */ (value, o) => o.sessions = parseSessions(value, defaultSessionToStr),
     /* K */ (value, o) => o.exams = parseExams(value, defaultExamToStr),
 ];
+
+/** @type {(rowValues: any[]) => string} */
+const defaultGetRowId = (rowValues) => {
+    // column E contains class id
+    // you might ask why using index 5, since column E is the 5th column
+    // shouldn't we use index 4 ?!
+    // well parseXLSX passes raw ExcelJS.Workbook.row[i].rowValues to this function
+    // and as i have previously mentioned ExcelJS puts a null at index 0 of every rowValues array
+    // therefore that's why :D
+    return rowValues[5];
+};
 
 /**
  * @param {any} raw
@@ -38,7 +51,6 @@ function parseSessions(raw, toStr) {
         starts: { hour: +(s && s[0]), minute: +(s && s[1]) },
         ends:   { hour: +(e && e[0]), minute: +(e && e[1]) },
         day: dayFromStr(farsiDayStr),
-        place: undefined,
     };
     session.toString = toStr;
 
@@ -74,6 +86,7 @@ function parseExams(raw, toStr) {
 
 export default {
     defaultAssigners,
+    defaultGetRowId,
     parseSessions,
     parseExams,
 };

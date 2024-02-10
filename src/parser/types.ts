@@ -65,7 +65,7 @@ export interface ClassInfo {
      * bustan: `نام‌مدرس`,
      * golestan: `نام استاد`
      */
-    teacher: string,
+    teachers: Array<string>,
     /**
      * bustan: `زمان‌ تشکيل‌ کلاس`,
      * golestan: `زمان و مكان ارائه/ امتحان`
@@ -73,8 +73,10 @@ export interface ClassInfo {
     sessions: Array<{
         starts: Time,
         ends: Time,
+        /** whether the session is created on odd, even or all dates. undefined means all */
+        dates?: 'odd' | 'even',
         day?: DayOfWeek,
-        place?: string
+        place?: string,
     }>,
     /**
      * bustan: `تاريخ‌ امتحان`,
