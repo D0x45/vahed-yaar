@@ -149,4 +149,5 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
 export default {
     defaultAssigners,
     defaultGetRowId,
+    parseExamOrSession,
 };
