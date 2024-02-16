@@ -1,59 +1,75 @@
 // @ts-check
 import { h } from 'preact';
+import { useState } from 'preact/hooks';
+
+function clamp(a, min, max) {
+    return Math.min(Math.max(a, min), max);
+}
 
 function Table({
     items,
     titles,
-    caption,
     pagination,
 }) {
     const name = this.constructor.name;
-
     const invalidData = (!Array.isArray(items) || items.length === 0);
-    const columns = invalidData ? undefined : Object.keys(items[0]);
+
+    // pagination
+    const [page, setPage] = useState(1);
+    const [columns, setColumns] = useState(Object.keys(titles));
 
     // ! TODO: localization and custom css
-    const _table = 'w-full text-sm text-right text-gray-500 dark:text-gray-400';
+    const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
     const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
+    const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
     const _alert = {
         class: 'w-full bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
         text: 'داده ای برای نمایش نیست!'
     };
-    const _caption = {
-        class: 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400',
-        text: `${items.length} ردیف` + (caption ? ` - ${caption}` : '')
-    };
+    const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
 
-    return h(
-        'div', { name, class: 'flex justify-center mb-4' },
-        // show alert if invalid data
-        invalidData ? h('span', { class: _alert.class }, _alert.text) :
-            // render the table otherwise
+    return invalidData
+        ? h('span', { class: _alert.class }, _alert.text)
+        : h('div', { name, class: 'flex justify-center mb-4' },
+            // table itself:
             h('table', { class: _table },
-                // table caption:
-                h('caption', { class: _caption.class }, _caption.text),
+                h('caption', { class: _caption },
+                    // info
+                    'نمایش ', clamp(pagination * (page-1), 1, items.length),
+                    '-', clamp(pagination * page, 1, items.length),
+                    ' ردیف از ', items.length,
+                    ' (صفحه ', page, ')',
+                    // next page
+                    h('button', {
+                        class: _pg_btn,
+                        onclick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
+                    }, 'بعدی'),
+                    // previous page
+                    h('button', {
+                        class: _pg_btn,
+                        onclick: () => setPage(p => ((p-1) * pagination) < 1 ? p : --p)
+                    }, 'قبلی'),
+                ),
                 h('thead', { class: _thead },
-                    h('tr', null,
-                        // @ts-ignore columns is never undefined here
-                        ...columns.map(col => h(
-                            'th', null,
-                            (titles && (col in titles) ? titles[col] : col)
-                        ))
-                    )
+                    h('tr', null, ...columns.map( col => h('th', null, titles[col]) ) )
                 ),
                 h('tbody', null,
-                    ...items.map(row => {
+                    ...items.slice(pagination * (page-1), pagination * page).map(row => {
                         return h('tr', null,
-                            ...Object.values(row)
-                                .map(value => h(
+                            ...columns.map(col => h(
                                     'td', null,
-                                    (value == undefined || value == null) ? '-' : value.toString()
+                                    // empty values are represented with a dash
+                                    (row[col] == undefined || row[col] == null) || (
+                                        typeof(row[col]) === 'object'
+                                        && 'length' in row[col]
+                                        && row[col].length === 0
+                                    ) ? '-' : row[col].toString()
                                 ))
                         );
                     })
                 )
             )
-    );
+        );
 }
 
 export default Table;
