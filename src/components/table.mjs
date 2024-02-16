@@ -10,6 +10,7 @@ function Table({
     items,
     titles,
     pagination,
+    columnClass,
 }) {
     const name = this.constructor.name;
     const invalidData = (!Array.isArray(items) || items.length === 0);
@@ -51,13 +52,15 @@ function Table({
                     }, 'قبلی'),
                 ),
                 h('thead', { class: _thead },
-                    h('tr', null, ...columns.map( col => h('th', null, titles[col]) ) )
+                    h('tr', null, ...columns.map(
+                        col => h('th', { class: columnClass ? columnClass[col] : '' }, titles[col])
+                    ))
                 ),
                 h('tbody', null,
                     ...items.slice(pagination * (page-1), pagination * page).map(row => {
-                        return h('tr', null,
+                        return h('tr', { class: 'odd:bg-white even:bg-gray-100' },
                             ...columns.map(col => h(
-                                    'td', null,
+                                    'td', { class: columnClass ? columnClass[col] : '' },
                                     // empty values are represented with a dash
                                     (row[col] == undefined || row[col] == null) || (
                                         typeof(row[col]) === 'object'
