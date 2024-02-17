@@ -9,53 +9,31 @@ import Navbar from './components/navbar.mjs';
 
 import './style.css';
 
+function generateLoader(a, b, setData) {
+    return async (file) => {
+        const buffer = await file.arrayBuffer();
+        const parsed = await parseXLSX(buffer, a, b);
+        if (parsed !== undefined) setData(parsed);
+        else setData([]);
+    };
+};
+
 function App() {
     const name = this.constructor.name;
     const _cls = 'container mx-auto p-2.5';
 
-    const [data, setData] = useState({
-        /** @type {undefined|Partial<Record<keyof import('./parser/types').ClassInfo, string>>} */
-        columnClass: undefined,
-        /** @type {import('./parser/types').ClassInfo[]} */
-        items: [],
-    });
-
-    const buildLoader =
-    /** @param {typeof data['columnClass']} columnClass */
-    (a, b, columnClass) => {
-        return async (file) => {
-            const buffer = await file.arrayBuffer();
-            const parsed = await parseXLSX(buffer, a, b);
-            (parsed !== undefined) && setData({ columnClass, items: parsed });
-        };
-    };
+    /** @type {[import('./parser/types').ClassInfo[], Function]} */
+    const [data, setData] = useState([]);
 
     /** @type {Record<string, { title: string, loader: (f: File) => Promise<void> }>} */
     const handlers = {
         'bustan': {
             title: 'بوستان',
-            loader: buildLoader(
-                Bustan.defaultAssigners,
-                Bustan.defaultGetRowId,
-                {
-                    credit: 'hidden',
-                    campusId: 'hidden lg:inline',
-                    courseType: 'hidden lg:inline',
-                }
-            )
+            loader: generateLoader(Bustan.defaultAssigners, Bustan.defaultGetRowId, setData)
         },
         'golestan': {
             title: 'گلستان',
-            loader: buildLoader(
-                Golestan.defaultAssigners,
-                Golestan.defaultGetRowId,
-                {
-                    courseType: 'hidden',
-                    courseId: 'hidden lg:inline',
-                    campusId: 'hidden md:inline',
-                    sessions: 'hidden md:inline',
-                }
-            )
+            loader: generateLoader(Golestan.defaultAssigners, Golestan.defaultGetRowId, setData)
         },
     };
 
@@ -63,7 +41,7 @@ function App() {
 
     return h('div', { name, class: _cls },
         h(Navbar, { accept, handlers }),
-        h(Table,  { items: data.items, columnClass: data.columnClass, titles: classInfoKeyTitles, pagination: 25 }),
+        h(Table,  { items: data, titles: classInfoKeyTitles, pagination: 25 }),
     );
 }
 

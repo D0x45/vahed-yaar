@@ -56,6 +56,7 @@ const diff = {
 };
 
 function sanitizeFarsi(str) {
+    if (typeof str !== 'string') return '';
     for (const [key, value] of Object.entries(diff)) {
         str = str.replaceAll(key, value);
     }

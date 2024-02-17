@@ -61,7 +61,17 @@ function Navbar({
         h('button', {
             type: 'button',
             class: _button.class,
-            onclick: () => (file && type) && handlers[type].loader(file)
+            onclick: /** @param {{target:HTMLElement}} e */ ({ target }) => {
+                if (!file || !type) return;
+                target.setAttribute('disabled', '1');
+                target.classList.add('disabled', 'bg-gray-400');
+                target.textContent = '...';
+                handlers[type].loader(file).then(() => {
+                    target.removeAttribute('disabled');
+                    target.classList.remove('disabled', 'bg-gray-400');
+                    target.textContent = _button.text;
+                });
+            }
         }, _button.text)
     );
 }
