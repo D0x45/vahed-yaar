@@ -1,18 +1,18 @@
 // @ts-check
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 
 function clamp(a, min, max) {
     return Math.min(Math.max(a, min), max);
 }
 
 function Table({
-    items,
+    rows,
     titles,
     pagination,
 }) {
     const name = this.constructor.name;
-    const invalidData = (!Array.isArray(items) || items.length === 0);
+    const invalidData = (!Array.isArray(rows) || rows.length === 0);
     const columns = Object.keys(titles);
 
     // pagination
@@ -20,6 +20,16 @@ function Table({
 
     /** @type {[string[], Function]} */
     const [hiddenCols, setHiddenCols] = useState([]);
+
+    /** search query to filter `rows` */
+    const [query, setQuery] = useState('');
+
+    /** @type {Array<import('../parser/types').ClassInfo>} */
+    const items = useMemo(() => {
+        setPage(1);
+        if (query) return rows.filter(r => JSON.stringify(r).includes(query));
+        return rows;
+    }, [rows, query]);
 
     // ! TODO: localization and custom css
     const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
@@ -30,6 +40,15 @@ function Table({
         text: 'داده ای برای نمایش نیست!'
     };
     const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
+    const _input =  {
+        class: [
+            'bg-gray-200 border-gray-200 text-gray-700',
+            'focus:border-purple-500',
+            'appearance-none text-sm leading-tight',
+            'border-1 rounded mr-3'
+        ].join(' '),
+        placeholder: 'جستجو در این صفحه...',
+    };
 
     return invalidData
         ? h('span', { class: _alert.class }, _alert.text)
@@ -42,6 +61,7 @@ function Table({
                     '-', clamp(pagination * page, 1, items.length),
                     ' ردیف از ', items.length,
                     ' (صفحه ', page, ')',
+                    (query ? `(نتایج جستجو: "${query}")` : ''),
                     // next page
                     h('button', {
                         class: _pg_btn,
@@ -53,7 +73,7 @@ function Table({
                         onclick: () => setPage(p => ((p-1) * pagination) < 1 ? p : --p)
                     }, 'قبلی'),
                     // columns checkbox
-                    columns.map(col => [
+                    ...columns.map(col => [
                         /** @ts-ignore */
                         h('input', {
                             id: `ch-${col}`,
@@ -67,7 +87,20 @@ function Table({
                             })
                         }),
                         h('label', { for: `ch-${col}`, class: 'mr-1' }, titles[col])
-                    ])
+                    ]),
+                    // search box
+                    h('input', {
+                        type: 'text',
+                        class: _input.class,
+                        placeholder: _input.placeholder,
+                        onChange: ({ target }) => {
+                            const query = target && ('value' in target) && (typeof target.value === 'string')
+                                ? target.value.trim()
+                                : undefined;
+                            console.debug('onchange', query);
+                            setQuery(query || '');
+                        }
+                    })
                 ),
                 h('thead', { class: _thead },
                     h('tr', null, ...columns.map(

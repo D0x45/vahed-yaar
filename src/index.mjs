@@ -41,7 +41,7 @@ function App() {
 
     return h('div', { name, class: _cls },
         h(Navbar, { accept, handlers }),
-        h(Table,  { items: data, titles: classInfoKeyTitles, pagination: 25 }),
+        h(Table,  { rows: data, titles: classInfoKeyTitles, pagination: 25 }),
     );
 }
 
