@@ -22,7 +22,6 @@ function Navbar({
     /** @type {[ File|undefined, Function ]} */
     const [file, setFile] = useState(undefined);
 
-    /** @param {{ target: { value: string, files: Array<File> } }} target */
     const onFileInputChanged = ({ target }) => {
         const path = target.value.split('.');
         const extension = `${path[path.length - 1]}`;
@@ -52,7 +51,7 @@ function Navbar({
         h('input', {
             type: 'file',
             class: _input,
-            onchange: onFileInputChanged
+            onChange: onFileInputChanged
         }),
         h(
             'select', { class: _button.class },
@@ -61,7 +60,7 @@ function Navbar({
         h('button', {
             type: 'button',
             class: _button.class,
-            onclick: /** @param {{target:HTMLElement}} e */ ({ target }) => {
+            onClick: ({ target }) => {
                 if (!file || !type) return;
                 target.setAttribute('disabled', '1');
                 target.classList.add('disabled', 'bg-gray-400');
