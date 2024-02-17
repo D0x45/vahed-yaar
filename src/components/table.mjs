@@ -107,7 +107,6 @@ function Table({
                             const query = target && ('value' in target) && (typeof target.value === 'string')
                                 ? target.value.trim()
                                 : undefined;
-                            console.debug('onchange', query);
                             setQuery(query || '');
                         }
                     })
