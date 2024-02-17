@@ -30,13 +30,25 @@ const defaultAssigners = [
     /* N */ (value, o) => {
         const [type, item] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
         if (type === undefined) return;
-        // check for duplicate odd/even sessions on the same date
-        // for instance there are two sessions on Mondays 10 to 12
-        // one with {date: odd} and the other with {date: even}
-        // these two must be merged into one {date: undefined}
-        // also duplicate values are ignored
         if (type === 'sessions') {
             for (let i = 0; i < o.sessions.length; ++i) {
+                // merge the sessions which start exactly
+                // when the next one starts
+                // e.g.: WED 12-13 + WED 13-14 => WED 12-14
+                if (
+                       o.sessions[i].day === item.day
+                    && timeEq(o.sessions[i].ends, item.starts)
+                    // ! TODO: check for place to be equal for merging...
+                    // && (item.place)
+                ) {
+                    o.sessions[i].ends = item.ends;
+                    return;
+                }
+
+                // check for duplicate odd/even sessions on the same date
+                // for instance there are two sessions on Mondays 10 to 12
+                // one with {date: odd} and the other with {date: even}
+                // these two must be merged into one {date: undefined}
                 if (
                        o.sessions[i].day === item.day
                     && timeEq(o.sessions[i].starts, item.starts)
