@@ -6,6 +6,13 @@ function clamp(a, min, max) {
     return Math.min(Math.max(a, min), max);
 }
 
+/**
+ * @param {{
+ *    titles: Record<string, string>,
+ *    rows: Array<Record<string, any> | Array<any>>
+ *    pagination: number,
+ * }} p0
+ */
 function Table({
     rows,
     titles,
@@ -24,11 +31,14 @@ function Table({
     /** search query to filter `rows` */
     const [query, setQuery] = useState('');
 
-    /** @type {Array<import('../parser/types').ClassInfo>} */
+    /** @type {Array<Record<keyof titles, any>>} */
     const items = useMemo(() => {
+        // reset page on change
         setPage(1);
-        if (query) return rows.filter(r => JSON.stringify(r).includes(query));
-        return rows;
+        // ! TODO: improve search
+        return query
+            ? rows.filter(r => JSON.stringify(r).includes(query))
+            : rows;
     }, [rows, query]);
 
     // ! TODO: localization and custom css
