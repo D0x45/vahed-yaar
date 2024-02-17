@@ -71,7 +71,7 @@ function Table({
                     '-', clamp(pagination * page, 1, items.length),
                     ' ردیف از ', items.length,
                     ' (صفحه ', page, ')',
-                    (query ? `(نتایج جستجو: "${query}")` : ''),
+                    (query ? ` (نتایج جستجو: "${query}")` : ''),
                     // next page
                     h('button', {
                         class: _pg_btn,
