@@ -37,6 +37,7 @@ const defaultAssigners = [
                 // e.g.: WED 12-13 + WED 13-14 => WED 12-14
                 if (
                        o.sessions[i].day === item.day
+                    && o.sessions[i].dates === item.dates
                     && timeEq(o.sessions[i].ends, item.starts)
                     // ! TODO: check for place to be equal for merging...
                     // && (item.place)
