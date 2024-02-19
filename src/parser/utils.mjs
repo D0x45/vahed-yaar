@@ -200,7 +200,6 @@ function timeEq(a, b) {
 function defaultSessionToStr() {
     const m0 = this.starts.minute ? `:${padLeft(this.starts.minute)}` : '';
     const m1 = this.ends.minute   ? `:${padLeft(this.ends.minute)}`   : '';
-    // ! TODO: missing fields place and dates
     let tmp = `${dayToStr(this.day)} ${this.starts.hour}${m0} تا ${this.ends.hour}${m1} `;
     if (this.place) tmp += `(${this.place}) `;
     if (this.dates) tmp += this.dates === 'odd' ? '[فرد]' : '[زوج]';

@@ -1,14 +1,18 @@
 // @ts-check
 import { h, render } from 'preact';
 import { useState } from 'preact/hooks';
+
 import { parseXLSX, classInfoKeyTitles } from './parser/utils.mjs';
 import Bustan from './parser/bustan.mjs';
 import Golestan from './parser/golestan.mjs';
+
 import Table from './components/table.mjs';
 import Navbar from './components/navbar.mjs';
+import Planner from './components/planner.mjs';
 
 import './style.css';
 
+// creates an async loader callback for Navbar component
 function generateLoader(a, b, setData) {
     return async (file) => {
         const buffer = await file.arrayBuffer();
@@ -50,7 +54,7 @@ function App() {
         h(Navbar, { accept, handlers }),
         h(Table, {
             rows: data,
-            titles: classInfoKeyTitles,
+            columnTitles: classInfoKeyTitles,
             pagination,
             isSelected: (row) => picks.ids.includes(row.id),
             setSelect: (row, isSelected) => {
@@ -69,6 +73,7 @@ function App() {
                 });
             }
         }),
+        h(Planner, { picks: picks.items })
     );
 }
 

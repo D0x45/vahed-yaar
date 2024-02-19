@@ -6,38 +6,51 @@ function clamp(a, min, max) {
     return Math.min(Math.max(a, min), max);
 }
 
-/**
- * @template T
- * @template U
- * @typedef {(row: T) => U} Getter
- */
+function genCaption(start, end, total, page, query) {
+    return `نمایش ${start}-${end} ردیف از ${total} (صفحه ${page})`
+            + (query ? ` (نتایج جستجو: "${query}")` : '');
+}
 
-/**
- * @template T
- * @template U
- * @typedef {(row: T, x: U) => void} Setter
- */
+// ! TODO: localization and custom css
+const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
+const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
+const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
+const _alert = {
+    class: 'w-full bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
+    text: 'داده ای برای نمایش نیست!'
+};
+const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
+const _input =  {
+    class: [
+        'bg-gray-200 border-gray-200 text-gray-700',
+        'focus:border-purple-500',
+        'appearance-none text-sm leading-tight',
+        'border-1 rounded mr-3'
+    ].join(' '),
+    placeholder: 'جستجو...',
+};
+const _next_pg = 'بعدی';
+const _prev_pg = 'قبلی';
 
 /**
  * @template {Record<string, any>} T
- * @param {{
- *    rows: Array<T>,
- *    titles: Record<keyof T, string>,
- *    pagination: number,
-*     isSelected?: Getter<T, boolean>,
-*     setSelect?: Setter<T, boolean>,
- * }} props
+ * @param {Object} props
+ * @param {T[]} props.rows
+ * @param {Record<keyof T, string>} props.columnTitles
+ * @param {number} props.pagination
+ * @param {undefined|((row: T) => boolean)} props.isSelected
+ * @param {undefined|((row: T, x: boolean) => void)} props.setSelect
  */
 function Table({
     rows,
-    titles,
+    columnTitles,
     pagination,
     isSelected,
     setSelect
 }) {
     const name = this.constructor.name;
     const invalidData = (!Array.isArray(rows) || rows.length === 0);
-    const columns = Object.keys(titles);
+    const columns = Object.keys(columnTitles);
 
     // pagination
     const [page, setPage] = useState(1);
@@ -45,10 +58,10 @@ function Table({
     /** @type {[string[], Function]} */
     const [hiddenCols, setHiddenCols] = useState([]);
 
-    /** search query to filter `rows` */
+    /** search query to filter rows */
     const [query, setQuery] = useState('');
 
-    /** @type {Array<Record<keyof titles, any>>} */
+    /** @type {Array<Record<keyof columnTitles, any>>} */
     const items = useMemo(() => {
         // reset page on change
         setPage(1);
@@ -58,47 +71,30 @@ function Table({
             : rows;
     }, [rows, query]);
 
-    // ! TODO: localization and custom css
-    const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
-    const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
-    const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
-    const _alert = {
-        class: 'w-full bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
-        text: 'داده ای برای نمایش نیست!'
-    };
-    const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
-    const _input =  {
-        class: [
-            'bg-gray-200 border-gray-200 text-gray-700',
-            'focus:border-purple-500',
-            'appearance-none text-sm leading-tight',
-            'border-1 rounded mr-3'
-        ].join(' '),
-        placeholder: 'جستجو در این صفحه...',
-    };
-
     return invalidData
         ? h('span', { class: _alert.class }, _alert.text)
         : h('div', { name, class: 'flex justify-center mb-4' },
             // table itself:
             h('table', { class: _table },
                 h('caption', { class: _caption },
-                    // info
-                    'نمایش ', clamp(pagination * (page-1), 1, items.length),
-                    '-', clamp(pagination * page, 1, items.length),
-                    ' ردیف از ', items.length,
-                    ' (صفحه ', page, ')',
-                    (query ? ` (نتایج جستجو: "${query}")` : ''),
-                    // next page
+                    // table caption
+                    genCaption(
+                        clamp(pagination * (page-1), 1, items.length),
+                        clamp(pagination * page, 1, items.length),
+                        items.length,
+                        page,
+                        query
+                    ),
+                    // next page button
                     h('button', {
                         class: _pg_btn,
                         onclick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
-                    }, 'بعدی'),
+                    }, _next_pg),
                     // previous page
                     h('button', {
                         class: _pg_btn,
                         onclick: () => setPage(p => ((p-1) * pagination) < 1 ? p : --p)
-                    }, 'قبلی'),
+                    }, _prev_pg),
                     // columns checkbox
                     ...columns.map(col => [
                         /** @ts-ignore */
@@ -113,7 +109,7 @@ function Table({
                                 return [...c];
                             })
                         }),
-                        h('label', { for: `ch-${col}`, class: 'mr-1' }, titles[col])
+                        h('label', { for: `ch-${col}`, class: 'mr-1' }, columnTitles[col])
                     ]),
                     // search box
                     h('input', {
@@ -121,20 +117,23 @@ function Table({
                         class: _input.class,
                         placeholder: _input.placeholder,
                         onChange: ({ target }) => {
-                            const query = target && ('value' in target) && (typeof target.value === 'string')
+                            const newQuery = target && ('value' in target) && (typeof target.value === 'string')
                                 ? target.value.trim()
                                 : undefined;
-                            setQuery(query || '');
+                            // update query only if changed
+                            (newQuery !== query) && setQuery(newQuery || '');
                         }
                     })
                 ),
                 h('thead', { class: _thead },
                     h('tr', null,
-                        // an optional select column if any provided
+                        // an optional select column if any selection utility provided
                         (setSelect && isSelected) ? h('th', null, '~') : undefined,
                         // the rest of the columns
                         ...columns.map(
-                            col => h('th', { class: hiddenCols.includes(col) ? 'hidden' : undefined }, titles[col])
+                            col => h('th', {
+                                class: hiddenCols.includes(col) ? 'hidden' : undefined
+                            }, columnTitles[col])
                         )
                     )
                 ),
