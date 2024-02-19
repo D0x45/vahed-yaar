@@ -29,7 +29,6 @@ const defaultAssigners = [
     },
     /* N */ (value, o) => {
         const [type, item] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
-        if (type === undefined) return;
         if (type === 'sessions') {
             for (let i = 0; i < o.sessions.length; ++i) {
                 // merge the sessions which start exactly
@@ -37,7 +36,7 @@ const defaultAssigners = [
                 // e.g.: WED 12-13 + WED 13-14 => WED 12-14
                 if (
                        o.sessions[i].day === item.day
-                    && o.sessions[i].dates === item.dates
+                    // && o.sessions[i].dates === item.dates
                     && timeEq(o.sessions[i].ends, item.starts)
                     // ! TODO: check for place to be equal for merging...
                     // && (item.place)
@@ -66,25 +65,21 @@ const defaultAssigners = [
                     // |    odd     |    even    |
                     // |    even    |     odd    |
                     // +------------+------------+
-                    if (o.sessions[i].dates !== item.dates) {
+                    if (o.sessions[i].dates !== item.dates)
+                        // other possible cases that are ignored,
+                        // since they don't affect the logic:
+                        // undefined <=> undefined
+                        // odd       <=> odd
+                        // even      <=> even
                         o.sessions[i].dates = undefined;
-                        // although this if statement is inside a loop,
-                        // the possibility of reaching another item with
-                        // the same properties is highly unlikely (unless something is really wrong)
-                        // so returning here after modifying the original value
-                        // is the best thing, since we do not need to push a new item to the list
-                        return;
-                    }
-                    // other possible cases that are ignored,
-                    // since they don't affect the logic:
-                    // undefined <=> undefined
-                    // odd       <=> odd
-                    // even      <=> even
+                    // either way this is duplicate value now,
+                    // and we do not need to push it to the list
+                    return;
                 }
             }
         }
         // @ts-ignore
-        o[type].push(item);
+        type && o[type].push(item);
     }
 ];
 
