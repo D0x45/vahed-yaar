@@ -21,9 +21,18 @@ function generateLoader(a, b, setData) {
 function App() {
     const name = this.constructor.name;
     const _cls = 'container mx-auto p-2.5';
+    const accept = ['xlsx'];
+    const pagination = 25;
 
     /** @type {[import('./parser/types').ClassInfo[], Function]} */
     const [data, setData] = useState([]);
+
+    const [picks, setPicks] = useState({
+        /** @type {Array<import('./parser/types').ClassInfo['id']>} */
+        ids: [],
+        /** @type {Array<import('./parser/types').ClassInfo>} */
+        items: []
+    });
 
     /** @type {Record<string, { title: string, loader: (f: File) => Promise<void> }>} */
     const handlers = {
@@ -37,11 +46,30 @@ function App() {
         },
     };
 
-    const accept = ['xlsx'];
-
     return h('div', { name, class: _cls },
         h(Navbar, { accept, handlers }),
-        h(Table,  { rows: data, titles: classInfoKeyTitles, pagination: 25 }),
+        h(Table, {
+            rows: data,
+            titles: classInfoKeyTitles,
+            pagination,
+            isSelected: (row) => picks.ids.includes(row.id),
+            setSelect: (row, isSelected) => {
+                const alreadyPicked = picks.ids.includes(row.id);
+                // isSelected(true)  === alreadyPicked(true)
+                // isSelected(false) === alreadyPicked(false)
+                if (isSelected === alreadyPicked) return;
+                // otherwise update picks
+                setPicks({
+                    ids: isSelected
+                        ? [...picks.ids, row.id]
+                        : picks.ids.filter(v => (v !== row.id)),
+                    /** @ts-ignore god kill me why is this thing so retarded */
+                    items: isSelected
+                        ? [...picks.items, row]
+                        : picks.items.filter(r => (r.id !== row.id)),
+                });
+            }
+        }),
     );
 }
 

@@ -13,7 +13,7 @@ const daysOfWeek = [
 
 /** @type {Record<keyof import('./types').ClassInfo, string>} */
 const classInfoKeyTitles = {
-    id: '#',
+    id: 'شناسه',
     campus: 'دانشکده',
     campusId: 'شناسه دانشکده',
     courseId: 'شناسه درس',

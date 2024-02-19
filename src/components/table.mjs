@@ -7,16 +7,33 @@ function clamp(a, min, max) {
 }
 
 /**
+ * @template T
+ * @template U
+ * @typedef {(row: T) => U} Getter
+ */
+
+/**
+ * @template T
+ * @template U
+ * @typedef {(row: T, x: U) => void} Setter
+ */
+
+/**
+ * @template {Record<string, any>} T
  * @param {{
- *    titles: Record<string, string>,
- *    rows: Array<Record<string, any> | Array<any>>
+ *    rows: Array<T>,
+ *    titles: Record<keyof T, string>,
  *    pagination: number,
- * }} p0
+*     isSelected?: Getter<T, boolean>,
+*     setSelect?: Setter<T, boolean>,
+ * }} props
  */
 function Table({
     rows,
     titles,
     pagination,
+    isSelected,
+    setSelect
 }) {
     const name = this.constructor.name;
     const invalidData = (!Array.isArray(rows) || rows.length === 0);
@@ -89,7 +106,7 @@ function Table({
                             id: `ch-${col}`,
                             type: 'checkbox',
                             class: 'mr-2',
-                            checked: hiddenCols.includes(col) ? undefined : '1',
+                            checked: !hiddenCols.includes(col),
                             onChange: ({ target }) => target && setHiddenCols(c => {
                                 if (target['checked']) c = c.filter(v => v !== col);
                                 else c.push(col);
@@ -112,13 +129,28 @@ function Table({
                     })
                 ),
                 h('thead', { class: _thead },
-                    h('tr', null, ...columns.map(
-                        col => h('th', { class: hiddenCols.includes(col) ? 'hidden' : undefined }, titles[col])
-                    ))
+                    h('tr', null,
+                        // an optional select column if any provided
+                        (setSelect && isSelected) ? h('th', null, '~') : undefined,
+                        // the rest of the columns
+                        ...columns.map(
+                            col => h('th', { class: hiddenCols.includes(col) ? 'hidden' : undefined }, titles[col])
+                        )
+                    )
                 ),
                 h('tbody', null,
                     ...items.slice(pagination * (page-1), pagination * page).map(row => {
                         return h('tr', { class: 'odd:bg-white even:bg-gray-100' },
+                            // a checkbox cell if any selection utility was provided
+                            (setSelect && isSelected) ? h('td', null,
+                                // @ts-ignore
+                                h('input', {
+                                    type: 'checkbox',
+                                    checked: isSelected(row),
+                                    onChange: ({ target }) => target && setSelect(row, !!target['checked'])
+                                })
+                            ) : undefined,
+                            // the rest of the ata cells
                             ...columns.map(col => h(
                                     'td', { class: hiddenCols.includes(col) ? 'hidden' : undefined },
                                     // empty values are represented with a dash
