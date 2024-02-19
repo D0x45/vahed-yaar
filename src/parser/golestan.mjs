@@ -28,8 +28,17 @@ const defaultAssigners = [
         o.teachers.includes(sv) || o.teachers.push(sv);
     },
     /* N */ (value, o) => {
-        const [type, item] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
+        const [type, item, sessionType] = parseExamOrSession(value, defaultSessionToStr, defaultExamToStr);
         if (type === 'sessions') {
+            // update info for courseType based on sessionType
+            if (sessionType !== undefined) {
+                if (undefined === o.courseType) o.courseType = sessionType;
+                else if (false === o.courseType.includes(sessionType)) {
+                    o.courseType += (`،${sessionType}`);
+                }
+            }
+
+            // loop through all the stored sessions to find duplicates and merge them
             for (let i = 0; i < o.sessions.length; ++i) {
                 // merge the sessions which start exactly
                 // when the next one starts
@@ -98,19 +107,22 @@ const defaultGetRowId = (rowValues) => {
  * @param {any} raw
  * @param {import('./types').ClassInfoValueToStr<'sessions'>} sessionToStr
  * @param {import('./types').ClassInfoValueToStr<'exams'>} examToStr
- * @returns { [undefined, undefined] | ['exams', import('./types').ClassInfo['exams'][0]] | ['sessions', import('./types').ClassInfo['sessions'][0]] }
+ * @returns { [undefined, undefined, undefined] | ['exams', import('./types').ClassInfo['exams'][0], undefined] | ['sessions', import('./types').ClassInfo['sessions'][0], undefined|string] }
  */
 function parseExamOrSession(raw, sessionToStr, examToStr) {
     if (
         !raw || typeof raw !== 'string'
         || raw.length === 0 || raw === defaultEmptyCell
-    ) return [undefined, undefined];
+    ) return [undefined, undefined, undefined];
 
     if (raw.startsWith('درس') || raw.startsWith('حل')) {
         const afterFirstColon = raw.substring(raw.indexOf(':') + 1);
-        //          [dayStr]             [oddOrEvenFlag] this character may not exist at all
-        //             |                 |
-        //         vvvvvvvvvv            v
+        const sessionTypeIdentifier = raw.charAt(raw.indexOf('(') + 1);
+        // [sessionTypeIdentifier]
+        //      |
+        //      |   [dayStr]             [oddOrEvenFlag] this character may not exist at all
+        //      |      |                 |
+        //      v  vvvvvvvvvv            v
         // DARS(T): saturday 10:00-12:00 o place: engineering 101
         //                   ^          ^  ^^^^^^^^^^^^^^^^^^^^^^ -> the rest is place
         //                   |[timeSpan]|
@@ -133,7 +145,7 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
         };
         session.toString = sessionToStr;
 
-        return ['sessions', session];
+        return ['sessions', session, sessionTypeIdentifier];
     }
 
     if (raw.startsWith('امتحان')) {
@@ -148,10 +160,10 @@ function parseExamOrSession(raw, sessionToStr, examToStr) {
         };
         exam.toString = examToStr;
 
-        return ['exams', exam];
+        return ['exams', exam, undefined];
     }
 
-    return [undefined, undefined];
+    return [undefined, undefined, undefined];
 }
 
 export default {
