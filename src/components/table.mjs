@@ -1,10 +1,7 @@
 // @ts-check
 import { h } from 'preact';
 import { useMemo, useState } from 'preact/hooks';
-
-function clamp(a, min, max) {
-    return Math.min(Math.max(a, min), max);
-}
+import { clamp } from '../parser/utils.mjs';
 
 function genCaption(start, end, total, page, query) {
     return `نمایش ${start}-${end} ردیف از ${total} (صفحه ${page})`
@@ -16,7 +13,7 @@ const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
 const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
 const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
 const _alert = {
-    class: 'w-full bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
+    class: 'w-full text-center bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
     text: 'داده ای برای نمایش نیست!'
 };
 const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
@@ -71,9 +68,9 @@ function Table({
             : rows;
     }, [rows, query]);
 
-    return invalidData
-        ? h('span', { class: _alert.class }, _alert.text)
-        : h('div', { name, class: 'flex justify-center mb-4' },
+    return h('div', { name, class: 'flex justify-center mb-4' },
+            // invalid data alert:
+            invalidData ? h('span', { class: _alert.class }, _alert.text) :
             // table itself:
             h('table', { class: _table },
                 h('caption', { class: _caption },
