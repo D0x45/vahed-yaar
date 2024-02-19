@@ -57,9 +57,8 @@ function App() {
                 const alreadyPicked = picks.ids.includes(row.id);
                 // isSelected(true)  === alreadyPicked(true)
                 // isSelected(false) === alreadyPicked(false)
-                if (isSelected === alreadyPicked) return;
                 // otherwise update picks
-                setPicks({
+                (isSelected !== alreadyPicked) && setPicks({
                     ids: isSelected
                         ? [...picks.ids, row.id]
                         : picks.ids.filter(v => (v !== row.id)),
