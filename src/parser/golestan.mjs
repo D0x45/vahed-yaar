@@ -92,15 +92,10 @@ const defaultAssigners = [
     }
 ];
 
-/** @type {(rowValues: any[]) => string} */
+/** @type {import('../parser/types').RowIDGenerator} */
 const defaultGetRowId = (rowValues) => {
     // column E contains course id and class id
-    // you might ask why using index 5, since column E is the 5th column
-    // shouldn't we use index 4 ?!
-    // well parseXLSX passes raw ExcelJS.Workbook.row[i].rowValues to this function
-    // and as i have previously mentioned ExcelJS puts a null at index 0 of every rowValues array
-    // therefore that's why :D
-    return rowValues[5];
+    return rowValues[4];
 };
 
 /**

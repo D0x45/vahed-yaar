@@ -111,3 +111,9 @@ export type ClassInfoValueToStr<FieldName extends keyof ClassInfo> = (
         ? ClassInfo[FieldName][0]
         : ClassInfo[FieldName]
 ) => string;
+
+/**
+ * a function that determines a unique value id for the given row values.
+ * the parser uses this to prevent data duplication
+ */
+export type RowIDGenerator = (rowValues: any[]) => string;

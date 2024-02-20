@@ -1,7 +1,7 @@
 // @ts-check
 import { h } from 'preact';
 import { useMemo, useState } from 'preact/hooks';
-import { clamp } from '../parser/utils.mjs';
+import { clamp, fillBetweenArray } from '../parser/utils.mjs';
 
 function genCaption(start, end, total, page, query) {
     return `نمایش ${start}-${end} ردیف از ${total} (صفحه ${page})`
@@ -35,6 +35,8 @@ const _prev_pg = 'قبلی';
  * @param {T[]} props.rows
  * @param {Record<keyof T, string>} props.columnTitles
  * @param {number} props.pagination
+ * @param {undefined|boolean} props.customizableColumns
+ * @param {undefined|boolean} props.enableSearch
  * @param {undefined|((row: T) => boolean)} props.isSelected
  * @param {undefined|((row: T, x: boolean) => void)} props.setSelect
  */
@@ -42,8 +44,10 @@ function Table({
     rows,
     columnTitles,
     pagination,
+    customizableColumns,
+    enableSearch,
     isSelected,
-    setSelect
+    setSelect,
 }) {
     const name = this.constructor.name;
     const invalidData = (!Array.isArray(rows) || rows.length === 0);
@@ -93,7 +97,7 @@ function Table({
                         onclick: () => setPage(p => ((p-1) * pagination) < 1 ? p : --p)
                     }, _prev_pg),
                     // columns checkbox
-                    ...columns.map(col => [
+                    ...columns.map(col => customizableColumns ? [
                         /** @ts-ignore */
                         h('input', {
                             id: `ch-${col}`,
@@ -107,9 +111,9 @@ function Table({
                             })
                         }),
                         h('label', { for: `ch-${col}`, class: 'mr-1' }, columnTitles[col])
-                    ]),
+                    ] : undefined),
                     // search box
-                    h('input', {
+                    enableSearch ? h('input', {
                         type: 'text',
                         class: _input.class,
                         placeholder: _input.placeholder,
@@ -120,7 +124,7 @@ function Table({
                             // update query only if changed
                             (newQuery !== query) && setQuery(newQuery || '');
                         }
-                    })
+                    }) : undefined
                 ),
                 h('thead', { class: _thead },
                     h('tr', null,
@@ -146,21 +150,23 @@ function Table({
                                     onChange: ({ target }) => target && setSelect(row, !!target['checked'])
                                 })
                             ) : undefined,
-                            // the rest of the ata cells
-                            ...columns.map(col => h(
-                                    'td', { class: hiddenCols.includes(col) ? 'hidden' : undefined },
+                            // the rest of the data cells
+                            ...columns.map(col => {
+                                const cellData = row[col];
+                                return h('td', { class: hiddenCols.includes(col) ? 'hidden' : undefined },
                                     // empty values are represented with a dash
-                                    (row[col] == undefined || row[col] == null) || (
-                                        typeof(row[col]) === 'object'
-                                        && 'length' in row[col]
-                                        && row[col].length === 0
+                                    (cellData == undefined || cellData == null) || (
+                                        typeof(cellData) === 'object'
+                                        && 'length' in cellData
+                                        && cellData.length === 0
                                     ) ? '-' : (
-                                        Array.isArray(row[col]) && (row[col].length > 1)
-                                        // generate an array with <br/> in between of multiple items. yay
-                                        ? [...row[col].flatMap((v, i) => (i+1) === row[col].length ? v.toString() : [v.toString(), h('br', null)] )]
-                                        : row[col].toString()
+                                        Array.isArray(cellData) && (cellData.length > 1)
+                                        // generate an array with <br/> between the items
+                                        ? fillBetweenArray(cellData, h('br', null), (i) => i?.toString())
+                                        : cellData.toString()
                                     )
-                                ))
+                                )
+                            })
                         );
                     })
                 )

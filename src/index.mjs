@@ -2,31 +2,50 @@
 import { h, render } from 'preact';
 import { useState } from 'preact/hooks';
 
-import { parseXLSX, classInfoKeyTitles } from './parser/utils.mjs';
+import {
+    parseXLSX,
+    classInfoKeyTitles,
+} from './parser/utils.mjs';
 import Bustan from './parser/bustan.mjs';
 import Golestan from './parser/golestan.mjs';
 
 import Table from './components/table.mjs';
 import Navbar from './components/navbar.mjs';
-import Planner from './components/planner.mjs';
+import {
+    DayMajorPlanner,
+    ComplicatedAndBuggyPlanner,
+} from './components/planner.mjs';
 
 import './style.css';
 
-// creates an async loader callback for Navbar component
-function generateLoader(a, b, setData) {
-    return async (file) => {
+/**
+ * creates an async loader callback for Navbar component
+ * @param {import('./parser/types').ExcelColumnMapper} a
+ * @param {import('./parser/types').RowIDGenerator} b
+ * @param {Function} setData
+ * @param {Function} setPicks
+ */
+function generateLoader(a, b, setData, setPicks) {
+    return /** @param {File} file */ async (file) => {
         const buffer = await file.arrayBuffer();
         const parsed = await parseXLSX(buffer, a, b);
-        if (parsed !== undefined) setData(parsed);
-        else setData([]);
+        if (parsed !== undefined) {
+            setData(parsed);
+            setPicks({ids:[],items:[]});
+        } else setData([]);
     };
 };
 
+// ! TODO: customization
+const _cls = 'container mx-auto p-2.5';
+const accept = ['xlsx'];
+const customizableColumns = true;
+const enableSearch = true;
+const pagination = 25;
+const Planner = DayMajorPlanner;
+
 function App() {
     const name = this.constructor.name;
-    const _cls = 'container mx-auto p-2.5';
-    const accept = ['xlsx'];
-    const pagination = 25;
 
     /** @type {[import('./parser/types').ClassInfo[], Function]} */
     const [data, setData] = useState([]);
@@ -42,11 +61,11 @@ function App() {
     const handlers = {
         'bustan': {
             title: 'بوستان',
-            loader: generateLoader(Bustan.defaultAssigners, Bustan.defaultGetRowId, setData)
+            loader: generateLoader(Bustan.defaultAssigners, Bustan.defaultGetRowId, setData, setPicks)
         },
         'golestan': {
             title: 'گلستان',
-            loader: generateLoader(Golestan.defaultAssigners, Golestan.defaultGetRowId, setData)
+            loader: generateLoader(Golestan.defaultAssigners, Golestan.defaultGetRowId, setData, setPicks)
         },
     };
 
@@ -56,6 +75,8 @@ function App() {
             rows: data,
             columnTitles: classInfoKeyTitles,
             pagination,
+            enableSearch,
+            customizableColumns,
             isSelected: (row) => picks.ids.includes(row.id),
             setSelect: (row, isSelected) => {
                 const alreadyPicked = picks.ids.includes(row.id);
@@ -71,7 +92,7 @@ function App() {
                         ? [...picks.items, row]
                         : picks.items.filter(r => (r.id !== row.id)),
                 });
-            }
+            },
         }),
         h(Planner, { picks: picks.items })
     );

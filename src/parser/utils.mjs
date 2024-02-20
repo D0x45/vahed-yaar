@@ -153,7 +153,13 @@ async function parseXLSX(
             continue;
         }
 
-        const rowId = getUniqueId(row.values);
+        const rowId = getUniqueId(
+               row.values.slice(1)
+            // ^ skip the first item, since ExcelJS yields a null value at index 0
+            // https://github.com/exceljs/exceljs/issues/698
+            // indexing in xlsx files starts from number 1 (eg. A1 point to row 1 and column 1)
+            // setting null at the start is much easier than always recalculating from 0 based to 1 based indexing
+        );
         const itemIdx = typeof idxMap[rowId] === 'number'
             // an item with the same id exists, yay!
             ? idxMap[rowId]
@@ -179,8 +185,8 @@ async function parseXLSX(
         assigners.forEach(
             (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
                 row.values[index + 1],
-                //               ^^^ the reason i applied this offset is that,
-                // exceljs gives an undefined value for index 0 of every row.values
+                //               ^^^
+                // exceljs gives a null value for index 0 of every row.values
                 items[itemIdx]
             )
         );
@@ -206,16 +212,41 @@ function timeToStr(hour, minute, forceMinute = false) {
     return s;
 }
 
-/** @type {import('./types').ClassInfoValueToStr<'sessions'>} */
+/**
+ * the `place` field is omitted by default, unless an `__append_place__` is set to a truthy value.
+ * set `__full_time__` to truthy and get fully-padded time string representation
+ * @see customSessionStr
+ * @type {import('./types').ClassInfoValueToStr<'sessions'>}
+ */
 function defaultSessionToStr() {
-    const t0 = timeToStr(this.starts.hour, this.starts.minute, false),
-          t1 = timeToStr(this.ends.hour, this.ends.minute, false),
+    const t0 = timeToStr(this.starts.hour, this.starts.minute, !!this.__full_time__),
+          t1 = timeToStr(this.ends.hour, this.ends.minute, !!this.__full_time__),
           d = dayToStr(this.day);
-    let tmp = `${d} ${t0} تا ${t1}`;
-    // this will be shown somewhere else as it takes a lot of space
-    // if (this.place) tmp += `(${this.place}) `;
-    if (this.dates) tmp += this.dates === 'odd' ? ' [فرد]' : ' [زوج]';
+    let tmp = `${d} ${t0} تا ${t1} `;
+    // this is just a stupid workaround
+    if (this.place && this.__append_place__) tmp += `(${this.place}) `;
+    if (this.dates) tmp += this.dates === 'odd' ? '[فرد]' : '[زوج]';
     return tmp.trim();
+}
+
+/**
+ * @template {import('./types').ClassInfo['sessions'][0]} U
+ * @template {Array<U>|U} T
+ * @param {T} itemOrItems
+ * @param {undefined|boolean} appendPlace
+ * @param {undefined|boolean} fullTime
+ * @returns {T extends any[] ? string[] : string}
+*/
+function customSessionStr(itemOrItems, appendPlace = undefined, fullTime = undefined) {
+    // bind the modified Session with corresponding flags
+    const mapper = item => defaultSessionToStr.call({
+        ...item,
+        __append_place__: appendPlace,
+        __full_time__: fullTime
+    });
+    return Array.isArray(itemOrItems)
+        ? itemOrItems.map(mapper)
+        : mapper(itemOrItems);
 }
 
 /** @type {import('./types').ClassInfoValueToStr<'exams'>} */
@@ -228,10 +259,12 @@ function clamp(a, min, max) {
 }
 
 /**
+ * permutations of two arrays, e.g. `[a, b] * [c, d] = [ac,ad,bc,bd]`
  * @template T
+ * @template [U=T]
  * @param {T[]} p0
- * @param {T[]} p1
- * @returns {Array<{a: T, b: T}>}
+ * @param {U[]} p1
+ * @returns {Array<{a: T, b: U}>}
  */
 function permutations(p0, p1) {
     return p0.flatMap(a => p1.map( b => ({a, b}) ));
@@ -250,6 +283,12 @@ function rangeArray(start, stop, step = 1) {
     );
 }
 
+/**
+ * creates time spans in the given range, e.g. `(start: 10, end: 12, span: 30) => [10:00, 10:30, 11:00, 11:30, 12:00]`
+ * @param {number} startHour
+ * @param {number} endHour
+ * @param {number} minuteSpan
+ */
 function makeTimeSpans(startHour, endHour, minuteSpan) {
     return permutations(
         rangeArray(
@@ -261,6 +300,10 @@ function makeTimeSpans(startHour, endHour, minuteSpan) {
 }
 
 /**
+ * greatest common divisor.
+ * used to determine the smallest interval for different times.
+ * e.g. `[15, 30] => 15`, meaning you will need 15-minute intervals in order
+ * to fit all possible time fractions in your planner, since 30 mins is two 15 mins.
  * @param {number} a
  * @param {number} b
  * @return {number}
@@ -286,6 +329,28 @@ function rangesOverlap(a, b, c, d, inclusive = undefined) {
         : (b >  c && a <  d);
 }
 
+/**
+ * @template T
+ * @template [U=T]
+ * @template [K=T]
+ * fill an `array` with `filler` in between
+ * @param {T[]} array
+ * @param {U} filler
+ * @param {undefined|((item: T) => K)} itemMapper
+ * @returns {Array<T|U|K>}
+ */
+function fillBetweenArray(array, filler, itemMapper = undefined) {
+    return [...array.flatMap((value, index) => {
+        const mapped = (itemMapper === undefined)
+            ? value
+            : itemMapper(value);
+
+        return (index + 1) === array.length
+            ? mapped
+            : [mapped, filler];
+    })];
+}
+
 export {
     classInfoKeyTitles,
     defaultEmptyCell,
@@ -305,4 +370,6 @@ export {
     permutations,
     gcd,
     rangesOverlap,
+    fillBetweenArray,
+    customSessionStr,
 };
