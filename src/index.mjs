@@ -23,25 +23,23 @@ import './style.css';
  * @param {import('./parser/types').ExcelColumnMapper} a
  * @param {import('./parser/types').RowIDGenerator} b
  * @param {Function} setData
- * @param {Function} setPicks
  */
-function generateLoader(a, b, setData, setPicks) {
+function generateLoader(a, b, setData) {
     return /** @param {File} file */ async (file) => {
         const buffer = await file.arrayBuffer();
         const parsed = await parseXLSX(buffer, a, b);
-        if (parsed !== undefined) {
-            setData(parsed);
-            setPicks({ids:[],items:[]});
-        } else setData([]);
+        if (parsed !== undefined) setData(parsed);
+        else setData([]);
     };
 };
 
 // ! TODO: customization
 const _cls = 'container mx-auto p-2.5';
-const accept = ['xlsx'];
-const customizableColumns = true;
-const enableSearch = true;
-const pagination = 25;
+const ACCEPT = ['xlsx'];
+const CUSTOM_COLUMNS = true;
+const ALOW_SEARCH = true;
+const PAGINATION = 15;
+const MAX_CREDIT = 24;
 const Planner = DayMajorPlanner;
 
 function App() {
@@ -61,22 +59,23 @@ function App() {
     const handlers = {
         'bustan': {
             title: 'بوستان',
-            loader: generateLoader(Bustan.defaultAssigners, Bustan.defaultGetRowId, setData, setPicks)
+            loader: generateLoader(Bustan.defaultAssigners, Bustan.defaultGetRowId, setData)
         },
         'golestan': {
             title: 'گلستان',
-            loader: generateLoader(Golestan.defaultAssigners, Golestan.defaultGetRowId, setData, setPicks)
+            loader: generateLoader(Golestan.defaultAssigners, Golestan.defaultGetRowId, setData)
         },
     };
 
     return h('div', { name, class: _cls },
-        h(Navbar, { accept, handlers }),
+        h(Navbar, { accept: ACCEPT, handlers }),
+        h(Planner, { picks: picks.items, clearPicks: () => setPicks({ids: [], items: []}), maxCredit: MAX_CREDIT }),
         h(Table, {
             rows: data,
             columnTitles: classInfoKeyTitles,
-            pagination,
-            enableSearch,
-            customizableColumns,
+            pagination: PAGINATION,
+            enableSearch: ALOW_SEARCH,
+            customizableColumns: CUSTOM_COLUMNS,
             isSelected: (row) => picks.ids.includes(row.id),
             setSelect: (row, isSelected) => {
                 const alreadyPicked = picks.ids.includes(row.id);
@@ -94,7 +93,6 @@ function App() {
                 });
             },
         }),
-        h(Planner, { picks: picks.items })
     );
 }
 

@@ -205,8 +205,13 @@ function timeEq(a, b) {
         && (a.minute === b.minute);
 }
 
+/**
+ * @param {number} hour
+ * @param {number} minute
+ * @param {undefined|boolean} forceMinute
+ */
 function timeToStr(hour, minute, forceMinute = false) {
-    let s = !forceMinute ? hour : padLeft(hour || 0);
+    let s = !forceMinute ? `${hour}` : padLeft(hour || 0);
     if (minute || forceMinute)
         s += ':' + padLeft(minute || 0);
     return s;
@@ -340,7 +345,7 @@ function rangesOverlap(a, b, c, d, inclusive = undefined) {
  * @returns {Array<T|U|K>}
  */
 function fillBetweenArray(array, filler, itemMapper = undefined) {
-    return [...array.flatMap((value, index) => {
+    return (array.length < 2) ? array : [...array.flatMap((value, index) => {
         const mapped = (itemMapper === undefined)
             ? value
             : itemMapper(value);

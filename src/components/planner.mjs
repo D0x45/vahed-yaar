@@ -2,7 +2,7 @@
 import { h } from 'preact';
 import {
     makeTimeSpans, timeToStr, customSessionStr,
-    daysOfWeek, gcd, timeEq, fillBetweenArray
+    daysOfWeek, gcd, timeEq, fillBetweenArray, rangesOverlap
 } from '../parser/utils.mjs';
 
 const _tbl = 'w-full text-sm text-center text-gray-500 border border-gray-400';
@@ -140,62 +140,131 @@ function ComplicatedAndBuggyPlanner({ picks }) {
     );
 }
 
-const _col_0 = 'روز هفته';
-const _col_1 = 'کلاس های انتخاب شده';
+const _mjr_col_day = 'روز هفته';
+const _mjr_col_name = 'کلاس های انتخاب شده';
 const _mjr_tbl = 'w-full text-sm text-right text-gray-500 border border-gray-400';
+const _mjr_tr = 'odd:bg-white even:bg-gray-100 border border-gray-400 bg-gray-100';
+const _mjr_clr = {
+    class: 'text-gray-500 border border-gray-500 px-1 mr-1 rounded',
+    text: 'حذف همه'
+};
 
 /**
  * @param {Object} props
  * @param {Array<import('../parser/types').ClassInfo>} props.picks
+ * @param {Function} props.clearPicks
+ * @param {number} props.maxCredit
  */
-function DayMajorPlanner({ picks }) {
+function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
     const name = this.constructor.name;
 
     /** @type {import('../parser/types').ClassInfo[][]} e.g. `[ [ ClassInfo, ... ], [], [] ]` */
     const picksByDay = Array.from({ length: 7 }, _ => []);
-    const alerts = [];
-    let invalidData = (false === Array.isArray(picks)) || (picks.length === 0);
-
-    if (invalidData) {
-        // default text for invalid data alert
-        alerts.push(_alert.text);
-    } else {
+    const invalidData = (false === Array.isArray(picks)) || (picks.length === 0);
+    let totalPickedCredit = 0;
+    if (invalidData === false) {
         for (const p of picks) {
+            totalPickedCredit += (p.credit || 0);
             for (const s of p.sessions) {
-                if (s.day === undefined) {
-                    console.warn('session=', s, ' has invalid day');
-                    continue;
-                }
+                // undefined day or duplicate item in the same day:
+                if (
+                    s.day === undefined
+                    || picksByDay[s.day].some(c => c.id === p.id)
+                ) continue;
                 picksByDay[s.day].push(p);
             }
         }
     }
 
     return h('div', { name, class: 'flex justify-center mb-4' },
-        // invalidData ? h('span', { class: _alert.class }, ...fillBetweenArray(alerts, h('br', null))) :
+        invalidData ? h('span', { class: _alert.class }, _alert.text) :
         h('table', { class: _mjr_tbl },
             h('thead', { class: _thead },
-                h('th', null, _col_0),
-                h('th', null, _col_1),
+                h('tr', null,
+                    h('th', null, _mjr_col_day),
+                    h(
+                        'th', { class: (totalPickedCredit > maxCredit ? 'bg-red-200' : undefined) },
+                        `${_mjr_col_name} (${totalPickedCredit})`,
+                        /** @ts-ignore */
+                        h('button', {
+                            class: _mjr_clr.class,
+                            onClick: clearPicks
+                        }, _mjr_clr.text)
+                    ),
+                )
             ),
             h('tbody', null,
                 ...picksByDay.map((itemsInDay, day) => {
-                    return itemsInDay.length === 0 ? undefined :
-                    h('tr', { class: 'odd:bg-white even:bg-gray-100 border border-gray-400 bg-gray-100' },
-                        h('td', null, daysOfWeek[day] + ` (${itemsInDay.length})`),
-                        h('td', null,
-                            ...fillBetweenArray(
-                                itemsInDay
-                                // ! TODO: better sort for sessions
-                                .sort((a, b) => a.sessions[0].starts.hour - b.sessions[0].starts.hour)
-                                .map(c => `[${c.id}] ${c.courseTitle} (${c.teachers.toString()}) (` + customSessionStr(
-                                    // pick only sessions within this day:
-                                    c.sessions.filter(s => s.day === day),
-                                    true, true
-                                ) + ')'),
-                                h('br', null)
+                    if (itemsInDay.length === 0) return undefined;
+                    /** @type {Array<{ starts: import('../parser/types').Time, ends: import('../parser/types').Time, node: any }>} */
+                    const thisDaysSessions = [];
+
+                    // loop through current day's sessions and stringify them!
+                    for (const item of itemsInDay) {
+                        // check if exam date/time overlaps with another item
+                        const examIsOverlapping = picks.some(
+                            c => (c != item) && c.exams.some(
+                                e => item.exams.some(
+                                    x => (x.day === e.day) && (x.month === e.month) && (x.year === e.year)
+                                        && (x.hour === e.hour) && (x.minute === e.minute)
+                                )
                             )
-                        )
+                        );
+
+                        // check the sessions
+                        for (const s of item.sessions) {
+                            if (s.day !== day) continue;
+                            const timeStr = '[' + timeToStr(s.starts.hour, s.starts.minute, true)
+                                          + '-' + timeToStr(s.ends.hour, s.ends.minute, true)
+                                          + ']';
+
+                                          const evenOddFlag = (s.dates === undefined
+                                ? undefined
+                                : h('span', {
+                                    class: `bold mx-1 ${s.dates === 'even' ? 'bg-yellow-200' : 'bg-blue-200'}`
+                                }, s.dates === 'even' ? '[زوج]' : '[فرد]')
+                            );
+
+                            const place = s.place
+                                ? h('span', { class: 'underline' }, `(${s.place})`)
+                                : undefined;
+
+                            const exams = item.exams.length === 0 ? undefined : item.exams.toString();
+
+                            thisDaysSessions.push({
+                                starts: s.starts,
+                                ends: s.ends,
+                                node: h('span', {
+                                        class: itemsInDay.some(
+                                            info => info.sessions.some(
+                                                session => (
+                                                    // don't compare the same object to itself!
+                                                    (session != s)
+                                                    // sessions on the same day
+                                                    && (session.day === s.day)
+                                                    // sessions with matching even/odd dates
+                                                    && (session.dates == undefined || session.dates === s.dates)
+                                                    // at last, check the overlapping time ranges
+                                                    && rangesOverlap(s.starts.hour, s.ends.hour, session.starts.hour, session.ends.hour)
+                                                )
+                                            )
+                                        ) ? 'bg-red-200' : undefined
+                                    },
+                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle),
+                                    place, (exams && examIsOverlapping) ? h('span', { class: 'bg-red-200 mx-1' }, `(آزمون: ${exams})`) : undefined
+                                )
+                            });
+                        }
+                    }
+
+                    return h('tr', { class: _mjr_tr },
+                        h('td', null, daysOfWeek[day] + ` (${itemsInDay.length})`),
+                        h('td', null, ...fillBetweenArray(
+                            thisDaysSessions.sort(
+                                (a,b) => ((a.starts.hour*60) + a.starts.minute) - ((b.starts.hour*60) + b.starts.minute)
+                            ).map(i => i.node),
+                            h('br', null)
+                        ))
                     );
                 })
             )
