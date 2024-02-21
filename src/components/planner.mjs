@@ -235,7 +235,7 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                                 starts: s.starts,
                                 ends: s.ends,
                                 node: h('span', {
-                                        class: itemsInDay.some(
+                                        class: (examIsOverlapping || itemsInDay.some(
                                             info => info.sessions.some(
                                                 session => (
                                                     // don't compare the same object to itself!
@@ -248,10 +248,10 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                                                     && rangesOverlap(s.starts.hour, s.ends.hour, session.starts.hour, session.ends.hour)
                                                 )
                                             )
-                                        ) ? 'bg-red-200' : undefined
+                                        )) ? 'bg-red-200' : undefined
                                     },
-                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle),
-                                    place, (exams && examIsOverlapping) ? h('span', { class: 'bg-red-200 mx-1' }, `(آزمون: ${exams})`) : undefined
+                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle), place,
+                                    (exams && examIsOverlapping) ? ` (آزمون: ${exams})` : undefined
                                 )
                             });
                         }
