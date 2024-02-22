@@ -9,14 +9,14 @@ function genCaption(start, end, total, page, query) {
 }
 
 // ! TODO: localization and custom css
-const _table = 'w-full text-sm text-center text-gray-500 dark:text-gray-400';
+const _table = 'w-full text-sm text-center text-gray-500';
 const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
 const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
 const _alert = {
     class: 'w-full text-center bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
     text: 'داده ای برای نمایش نیست!'
 };
-const _caption = 'mb-2 text-right text-sm font-normal text-gray-500 dark:text-gray-400';
+const _caption = 'mb-2 text-right text-sm font-normal text-gray-500';
 const _input =  {
     class: [
         'bg-gray-200 border-gray-200 text-gray-700',
@@ -129,7 +129,7 @@ function Table({
                 h('thead', { class: _thead },
                     h('tr', null,
                         // an optional select column if any selection utility provided
-                        (setSelect && isSelected) ? h('th', null, '~') : undefined,
+                        (setSelect && isSelected) ? h('th', { class: 'border border-gray-200' }, '~') : undefined,
                         // the rest of the columns
                         ...columns.map(
                             col => h('th', {
@@ -140,7 +140,7 @@ function Table({
                 ),
                 h('tbody', null,
                     ...items.slice(pagination * (page-1), pagination * page).map(row => {
-                        return h('tr', { class: 'odd:bg-white even:bg-gray-100' },
+                        return h('tr', { class: 'odd:bg-white even:bg-gray-100 border border-gray-200' },
                             // a checkbox cell if any selection utility was provided
                             (setSelect && isSelected) ? h('td', null,
                                 // @ts-ignore

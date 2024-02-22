@@ -206,7 +206,7 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                             c => (c != item) && c.exams.some(
                                 e => item.exams.some(
                                     x => (x.day === e.day) && (x.month === e.month) && (x.year === e.year)
-                                        && (x.hour === e.hour) && (x.minute === e.minute)
+                                        // && (x.hour === e.hour) && (x.minute === e.minute)
                                 )
                             )
                         );
