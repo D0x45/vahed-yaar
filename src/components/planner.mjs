@@ -218,11 +218,12 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                                           + '-' + timeToStr(s.ends.hour, s.ends.minute, true)
                                           + ']';
 
-                                          const evenOddFlag = (s.dates === undefined
-                                ? undefined
-                                : h('span', {
-                                    class: `bold mx-1 ${s.dates === 'even' ? 'bg-yellow-200' : 'bg-blue-200'}`
-                                }, s.dates === 'even' ? '[زوج]' : '[فرد]')
+                            const evenOddFlag = (
+                                s.dates === undefined
+                                    ? undefined
+                                    : h('span', {
+                                        class: `bold mx-1 ${s.dates === 'even' ? 'bg-yellow-200' : 'bg-blue-200'}`
+                                    }, s.dates === 'even' ? '[زوج]' : '[فرد]')
                             );
 
                             const place = s.place
@@ -250,7 +251,7 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                                             )
                                         )) ? 'bg-red-200' : undefined
                                     },
-                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle), place,
+                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle), `[${item.id}]`, place,
                                     (exams && examIsOverlapping) ? ` (آزمون: ${exams})` : undefined
                                 )
                             });
