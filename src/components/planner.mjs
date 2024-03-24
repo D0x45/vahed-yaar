@@ -184,7 +184,7 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                     h('th', null, _mjr_col_day),
                     h(
                         'th', { class: (totalPickedCredit > maxCredit ? 'bg-red-200' : undefined) },
-                        `${_mjr_col_name} (${totalPickedCredit})`,
+                        `${_mjr_col_name} (${totalPickedCredit} واحد)`,
                         /** @ts-ignore */
                         h('button', {
                             class: _mjr_clr.class,
@@ -227,32 +227,35 @@ function DayMajorPlanner({ picks, clearPicks, maxCredit }) {
                             );
 
                             const place = s.place
-                                ? h('span', { class: 'underline' }, `(${s.place})`)
+                                ? h('span', { class: 'mx-1 underline' }, `(${s.place})`)
                                 : undefined;
 
                             const exams = item.exams.length === 0 ? undefined : item.exams.toString();
 
+                            const timeRangesOverlap = itemsInDay.some(
+                                info => info.sessions.some(
+                                    session => (
+                                        // don't compare the same object to itself!
+                                        (session != s)
+                                        // sessions on the same day
+                                        && (session.day === s.day)
+                                        // sessions with matching even/odd dates
+                                        && (session.dates == undefined || session.dates === s.dates)
+                                        // at last, check the overlapping time ranges
+                                        && rangesOverlap(s.starts.hour, s.ends.hour, session.starts.hour, session.ends.hour)
+                                    )
+                                )
+                            );
+
                             thisDaysSessions.push({
                                 starts: s.starts,
                                 ends: s.ends,
-                                node: h('span', {
-                                        class: (examIsOverlapping || itemsInDay.some(
-                                            info => info.sessions.some(
-                                                session => (
-                                                    // don't compare the same object to itself!
-                                                    (session != s)
-                                                    // sessions on the same day
-                                                    && (session.day === s.day)
-                                                    // sessions with matching even/odd dates
-                                                    && (session.dates == undefined || session.dates === s.dates)
-                                                    // at last, check the overlapping time ranges
-                                                    && rangesOverlap(s.starts.hour, s.ends.hour, session.starts.hour, session.ends.hour)
-                                                )
-                                            )
-                                        )) ? 'bg-red-200' : undefined
-                                    },
-                                    timeStr, evenOddFlag, h('b', { class: 'mx-1' }, item.courseTitle), `[${item.id}]`, place,
-                                    (exams && examIsOverlapping) ? ` (آزمون: ${exams})` : undefined
+                                node: h('span', null,
+                                    h('span', { class: timeRangesOverlap ? 'bg-red-200' : undefined }, timeStr),
+                                    evenOddFlag,
+                                    h('b', { class: 'mx-1' }, `${item.courseTitle} [${item.id}]`),
+                                    place,
+                                    exams ? h('span', { class: examIsOverlapping ? 'bg-red-200' : undefined }, `(آزمون: ${exams})`) : undefined
                                 )
                             });
                         }
