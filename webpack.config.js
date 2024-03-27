@@ -3,29 +3,28 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
     mode: 'development',
-    entry: './src/index.mjs',
+    entry: './src/index.ts',
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: "bundle.js",
-    },
-    resolve: {
-        alias: {
-            'react': 'preact/compat',
-            'react-dom': 'preact/compat',
-        }
     },
     module: {
         rules: [
             {
                 test: /\.(png|jpe?g|gif|woff|svg|eot|ttf)$/i,
-                use: [{ loader: "file-loader" }],
+                use: [{ loader: 'file-loader' }],
             },
             {
                 test: /\.css$/i,
                 include: path.resolve(__dirname, 'src'),
                 use: ['style-loader', 'css-loader', 'postcss-loader'],
             },
-        ],
+            {
+                test: /\.ts$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
+        ]
     },
     plugins: [
         new HtmlWebpackPlugin({
