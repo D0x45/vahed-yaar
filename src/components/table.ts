@@ -1,90 +1,94 @@
-// @ts-check
 import { h } from 'preact';
 import { useMemo, useState } from 'preact/hooks';
-import { clamp, fillBetweenArray } from '../parser/utils.mjs';
 
-function genCaption(start, end, total, page, query) {
-    return `نمایش ${start}-${end} ردیف از ${total} (صفحه ${page})`
-            + (query ? ` (نتایج جستجو: "${query}")` : '');
+import * as util from '../parser/utils';
+
+function makeCaption(start: any, end: any, total: any, page: any, query: any) {
+    return `نمایش ردیف ${start}-${end} از ${total} (صفحه ${page})`
+        + (query ? ` (نتایج جستجو: "${query}")` : '');
 }
 
 // ! TODO: localization and custom css
-const _table = 'w-full text-sm text-center text-gray-500';
-const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
-const _pg_btn = 'text-gray-500 text-sm border border-gray-500 px-1 mr-1 rounded';
-const _alert = {
-    class: 'w-full text-center bg-gray-100 border border-gray-400 text-gray-500 px-2 py-1.5 rounded',
-    text: 'داده ای برای نمایش نیست!'
-};
-const _caption = 'mb-2 text-right text-sm font-normal text-gray-500';
-const _input =  {
-    class: [
-        'bg-gray-200 border-gray-200 text-gray-700',
-        'focus:border-purple-500',
-        'appearance-none text-sm leading-tight',
-        'border-1 rounded mr-3'
-    ].join(' '),
-    placeholder: 'جستجو...',
-};
+const _table = [
+    'w-full', 'text-sm',
+    'text-center', 'text-gray-500'
+].join(' ');
+const _thead = [
+    'text-xs', 'text-gray-700',
+    'uppercase', 'bg-gray-50',
+    'border', 'border-gray-200'
+].join(' ');
+const _pg_btn = [
+    'text-gray-500', 'text-sm',
+    'border', 'border-gray-500',
+    'px-1', 'mr-1', 'rounded'
+].join(' ');
+const _alert_class = [
+    'w-full', 'text-center', 'py-1.5', 'rounded',
+    'bg-gray-100', 'border', 'border-gray-400',
+    'text-gray-500', 'px-2',
+].join(' ');
+const _alert_text = 'داده ای برای نمایش نیست!'
+const _caption = [
+    'mb-2', 'text-right', 'text-sm',
+    'font-normal', 'text-gray-500'
+].join(' ');
+const _input_class = [
+    'bg-gray-200', 'border-gray-200', 'text-gray-700',
+    'focus:border-purple-500',
+    'appearance-none', 'text-sm', 'leading-tight',
+    'border-1', 'rounded mr-3'
+].join(' ');
+const _input_placeholder = 'جستجو...';
 const _next_pg = 'بعدی';
 const _prev_pg = 'قبلی';
 
-/**
- * @template {Record<string, any>} T
- * @param {Object} props
- * @param {T[]} props.rows
- * @param {Record<keyof T, string>} props.columnTitles
- * @param {number} props.pagination
- * @param {undefined|boolean} props.customizableColumns
- * @param {undefined|boolean} props.enableSearch
- * @param {undefined|((row: T) => boolean)} props.isSelected
- * @param {undefined|((row: T, x: boolean) => void)} props.setSelect
- */
-function Table({
-    rows,
-    columnTitles,
-    pagination,
-    customizableColumns,
-    enableSearch,
-    isSelected,
-    setSelect,
-}) {
+function Table<T extends Record<string, any>>(
+    this: typeof Table, {
+        dataRows, columnTitles, pagination,
+        customizableColumns,
+        enableSearch, isSelected, setSelect,
+    }: {
+        dataRows: T[],
+        columnTitles: Record<keyof T, string>,
+        pagination: number,
+        customizableColumns?: boolean,
+        enableSearch?: boolean,
+        isSelected?: ((row: T) => boolean),
+        setSelect?: ((row: T, x: boolean) => void),
+    }
+) {
     const name = this.constructor.name;
-    const invalidData = (!Array.isArray(rows) || rows.length === 0);
+    const invalidData = dataRows.length === 0;
     const columns = Object.keys(columnTitles);
 
-    // pagination
     const [page, setPage] = useState(1);
-
-    /** @type {[string[], Function]} */
-    const [hiddenCols, setHiddenCols] = useState([]);
-
-    /** search query to filter rows */
+    const [hiddenCols, setHiddenCols] = useState<string[]>([]);
     const [query, setQuery] = useState('');
 
-    /** @type {Array<Record<keyof columnTitles, any>>} */
-    const items = useMemo(() => {
+    const items = useMemo<Array<Record<keyof typeof columnTitles, any>>>(() => {
         // reset page on change
         setPage(1);
-        // ! TODO: improve search
+        // ! TODO: improve generic search
         return query
-            ? rows.filter(r => JSON.stringify(r).includes(query))
-            : rows;
-    }, [rows, query]);
+            ? dataRows.filter(r => JSON.stringify(r).includes(query))
+            : dataRows;
+    }, [dataRows, query]);
+
+    const p0 = pagination * (page - 1);
+    const p1 = pagination * page;
 
     return h('div', { name, class: 'flex justify-center mb-4' },
-            // invalid data alert:
-            invalidData ? h('span', { class: _alert.class }, _alert.text) :
+        // invalid data alert:
+        invalidData ? h('span', { class: _alert_class }, _alert_text) :
             // table itself:
             h('table', { class: _table },
                 h('caption', { class: _caption },
                     // table caption
-                    genCaption(
-                        clamp(pagination * (page-1), 1, items.length),
-                        clamp(pagination * page, 1, items.length),
-                        items.length,
-                        page,
-                        query
+                    makeCaption(
+                        util.clamp(p0, 1, items.length),
+                        util.clamp(p1, 1, items.length),
+                        items.length, page, query
                     ),
                     // next page button
                     h('button', {
@@ -94,7 +98,7 @@ function Table({
                     // previous page
                     h('button', {
                         class: _pg_btn,
-                        onclick: () => setPage(p => ((p-1) * pagination) < 1 ? p : --p)
+                        onclick: () => setPage(p => ((p - 1) * pagination) < 1 ? p : --p)
                     }, _prev_pg),
                     // columns checkbox
                     ...columns.map(col => customizableColumns ? [
@@ -104,8 +108,8 @@ function Table({
                             type: 'checkbox',
                             class: 'mr-2',
                             checked: !hiddenCols.includes(col),
-                            onChange: ({ target }) => target && setHiddenCols(c => {
-                                if (target['checked']) c = c.filter(v => v !== col);
+                            onChange: (e: any) => e.target && setHiddenCols(c => {
+                                if (e.target['checked']) c = c.filter(v => v !== col);
                                 else c.push(col);
                                 return [...c];
                             })
@@ -115,8 +119,8 @@ function Table({
                     // search box
                     enableSearch ? h('input', {
                         type: 'text',
-                        class: _input.class,
-                        placeholder: _input.placeholder,
+                        class: _input_class,
+                        placeholder: _input_placeholder,
                         onChange: ({ target }) => {
                             const newQuery = target && ('value' in target) && (typeof target.value === 'string')
                                 ? target.value.trim()
@@ -129,7 +133,7 @@ function Table({
                 h('thead', { class: _thead },
                     h('tr', null,
                         // an optional select column if any selection utility provided
-                        (setSelect && isSelected) ? h('th', { class: 'border border-gray-200' }, '~') : undefined,
+                        (setSelect && isSelected) ? h('th', null, '~') : undefined,
                         // the rest of the columns
                         ...columns.map(
                             col => h('th', {
@@ -139,7 +143,7 @@ function Table({
                     )
                 ),
                 h('tbody', null,
-                    ...items.slice(pagination * (page-1), pagination * page).map(row => {
+                    ...items.slice(p0, p1).map(row => {
                         return h('tr', { class: 'odd:bg-white even:bg-gray-100 border border-gray-200' },
                             // a checkbox cell if any selection utility was provided
                             (setSelect && isSelected) ? h('td', null,
@@ -147,7 +151,7 @@ function Table({
                                 h('input', {
                                     type: 'checkbox',
                                     checked: isSelected(row),
-                                    onChange: ({ target }) => target && setSelect(row, !!target['checked'])
+                                    onChange: (e: any) => e.target && setSelect(row, !!e.target['checked'])
                                 })
                             ) : undefined,
                             // the rest of the data cells
@@ -156,14 +160,14 @@ function Table({
                                 return h('td', { class: hiddenCols.includes(col) ? 'hidden' : undefined },
                                     // empty values are represented with a dash
                                     (cellData == undefined || cellData == null) || (
-                                        typeof(cellData) === 'object'
+                                        typeof (cellData) === 'object'
                                         && 'length' in cellData
                                         && cellData.length === 0
                                     ) ? '-' : (
                                         Array.isArray(cellData) && (cellData.length > 1)
-                                        // generate an array with <br/> between the items
-                                        ? fillBetweenArray(cellData, h('br', null), (i) => i?.toString())
-                                        : cellData.toString()
+                                            // generate an array with <br/> between the items
+                                            ? util.fillBetweenArray(cellData, h('br', null), (i: any) => i?.toString())
+                                            : cellData.toString()
                                     )
                                 )
                             })
@@ -171,7 +175,7 @@ function Table({
                     })
                 )
             )
-        );
+    );
 }
 
 export default Table;

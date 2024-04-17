@@ -1,5 +1,3 @@
-// the types and data structures
-
 /** time in 24-hour format (e.g. 23:15) */
 export type Time = {
     hour: number,
@@ -105,7 +103,7 @@ export type ExcelColumnMapper = Array<undefined | _Assigner>;
  * a function which will be bound to the field value on its creation inside the parser
  * that allows implementing custom string representation
  */
-export type ClassInfoValueToStr<FieldName extends keyof ClassInfo> = (
+export type ClassInfoFieldStringifier<FieldName extends keyof ClassInfo> = (
     this: ClassInfo[FieldName] extends any[]
         // if it's an array then we need to extract the value type
         ? ClassInfo[FieldName][0]
@@ -117,3 +115,14 @@ export type ClassInfoValueToStr<FieldName extends keyof ClassInfo> = (
  * the parser uses this to prevent data duplication
  */
 export type RowIDGenerator = (rowValues: any[]) => string;
+
+/**
+ * descriptor type for dataset loaders.
+ * functions that take raw `File`s and an `StateUpdater<ClassInfo[]>`
+ */
+export type DatasetLoader = {
+    title: string,
+    fn: (f: File) => Promise<void>
+};
+
+export type DatasetLoaderMap = Record<string, DatasetLoader>;

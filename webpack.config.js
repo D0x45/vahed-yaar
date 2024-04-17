@@ -4,6 +4,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     mode: 'development',
     entry: './src/index.ts',
+    stats: {
+        errorDetails: true
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: "bundle.js",
@@ -32,4 +35,7 @@ module.exports = {
             filename: 'index.html',
         }),
     ],
+    resolve: {
+        extensions: ['.ts', '.js', '.css']
+    },
 };

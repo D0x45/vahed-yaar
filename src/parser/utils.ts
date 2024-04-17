@@ -1,33 +1,14 @@
-// @ts-check
-import ExcelJS from 'exceljs';
+import {
+    type DayOfWeek,
+    type ClassInfo,
+    type ExcelColumnMapper,
+    type RowIDGenerator,
+    type Time,
+} from '../types';
 
-/** empty cell string indicating null or non-existing value */
-const defaultEmptyCell = '-';
+import * as ExcelJS from 'exceljs';
 
-const daysOfWeek = [
-    'شنبه',
-    'یکشنبه',
-    'دوشنبه',
-    'سه شنبه',
-    'چهارشنبه',
-    'پنجشنبه',
-    'جمعه'
-];
-
-/** @type {Record<keyof import('./types').ClassInfo, string>} */
-const classInfoKeyTitles = {
-    id: 'شناسه',
-    campus: 'دانشکده',
-    campusId: 'شناسه دانشکده',
-    courseId: 'شناسه درس',
-    courseTitle: 'درس',
-    capacity: 'ظرفیت',
-    courseType: 'نوع درس',
-    credit: 'واحد',
-    exams: 'آزمون',
-    sessions: 'کلاس',
-    teachers: 'استاد'
-};
+export const defaultEmptyCell = '-';
 
 const diff = {
     'أ': 'ا',
@@ -59,7 +40,31 @@ const diff = {
     '\u200f': ' ',
 };
 
-function sanitizeFarsi(str) {
+export const classInfoKeyTitles: Record<keyof ClassInfo, string> = {
+    id: 'شناسه',
+    campus: 'دانشکده',
+    campusId: 'شناسه دانشکده',
+    courseId: 'شناسه درس',
+    courseTitle: 'درس',
+    capacity: 'ظرفیت',
+    courseType: 'نوع درس',
+    credit: 'واحد',
+    exams: 'آزمون',
+    sessions: 'کلاس',
+    teachers: 'استاد'
+};
+
+export const daysOfWeek = [
+    'شنبه',
+    'یکشنبه',
+    'دوشنبه',
+    'سه شنبه',
+    'چهارشنبه',
+    'پنجشنبه',
+    'جمعه'
+];
+
+export function sanitizeFarsi(str: string): string {
     if (typeof str !== 'string') return '';
     for (const [key, value] of Object.entries(diff)) {
         str = str.replaceAll(key, value);
@@ -67,8 +72,7 @@ function sanitizeFarsi(str) {
     return str.replaceAll(/[\s]{2,}/g, ' ').trim();
 }
 
-/** @returns {undefined|import('./types').DayOfWeek} */
-function dayFromStr(farsi) {
+export function dayFromStr(farsi: string): DayOfWeek | undefined {
     switch (farsi) {
         case 'شنبه': return 0;
 
@@ -92,34 +96,25 @@ function dayFromStr(farsi) {
 
         case 'جمعه': return 6;
     }
-    console.error(`unknown farsi day of week representation: '${farsi}'`);
+    console.error(`unknown farsi DayOfWeek representation: '${farsi}'`);
     return undefined;
 }
 
-/** @param {undefined|import('./types').DayOfWeek} day */
-function dayToStr(day) {
+export function dayToStr(day?: DayOfWeek): string {
     if (day === undefined) return '-';
     return daysOfWeek[day];
 }
 
-function padLeft(num, len = 2, p = '0') {
-    const s = `${num}`;
+export function padLeft(a: any, len = 2, p = '0'): string {
+    const s = `${a}`;
     return p.repeat(Math.abs(len-s.length)) + s;
 }
 
-/**
- * @todo maybe this fn receives an ExcelJS.Workbook instead?
- *
- * @param {ArrayBuffer} input
- * @param {import('./types').ExcelColumnMapper} assigners
- * @param {(rowValues: any[]) => string} getUniqueId this helps preventing data duplication and merging duplicates
- * @returns {Promise<undefined|Array<import('./types').ClassInfo>>}
- */
-async function parseXLSX(
-    input,
-    assigners,
-    getUniqueId
-) {
+export async function parseXLSX(
+    input: ArrayBuffer,
+    assigners: ExcelColumnMapper,
+    getUniqueId: RowIDGenerator
+): Promise<undefined | ClassInfo[]> {
     const wb = new ExcelJS.Workbook;
     await wb.xlsx.load(
         input,
@@ -130,12 +125,8 @@ async function parseXLSX(
         return undefined;
 
     const sheet = wb.worksheets[0];
-
-    /** @type {Array<import('./types').ClassInfo>} */
-    const items = new Array();
-
-    /** @type {Record<string, number>} map item IDs to index numbers! */
-    const idxMap = {};
+    const items: ClassInfo[] = [];
+    const idxMap: Record<string, number> = {};
 
     for (
         // indexing starts at 1
@@ -146,15 +137,16 @@ async function parseXLSX(
         ++i
     ) {
         const row = sheet.getRow(i);
+        const values = row.values;
 
         // check for invalid row
-        if (!row.hasValues || !Array.isArray(row.values) || row.values.length < assigners.length) {
-            console.warn(`row ${i} has length of ${row.values.length} which is less than assigners.length=${assigners.length}`);
+        if (!row.hasValues || !Array.isArray(values) || values.length < assigners.length) {
+            console.warn(`row ${i} has length of ${values.length} which is less than assigners.length=${assigners.length}`);
             continue;
         }
 
         const rowId = getUniqueId(
-               row.values.slice(1)
+               values.slice(1)
             // ^ skip the first item, since ExcelJS yields a null value at index 0
             // https://github.com/exceljs/exceljs/issues/698
             // indexing in xlsx files starts from number 1 (eg. A1 point to row 1 and column 1)
@@ -182,11 +174,12 @@ async function parseXLSX(
                 sessions: [],
             };
 
+
         assigners.forEach(
             (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
-                row.values[index + 1],
-                //               ^^^
-                // exceljs gives a null value for index 0 of every row.values
+                values[index + 1],
+                //           ^^^
+                // ExcelJS gives a null value for index 0 of every row.values
                 items[itemIdx]
             )
         );
@@ -195,22 +188,12 @@ async function parseXLSX(
     return items;
 }
 
-/**
- * @param {import('./types').Time} a
- * @param {import('./types').Time} b
- * @returns {boolean}
- */
-function timeEq(a, b) {
+export function timeEq(a: Time, b: Time): boolean {
     return (a.hour === b.hour)
         && (a.minute === b.minute);
 }
 
-/**
- * @param {number} hour
- * @param {number} minute
- * @param {undefined|boolean} forceMinute
- */
-function timeToStr(hour, minute, forceMinute = false) {
+export function timeToStr(hour: number, minute: number, forceMinute = false): string {
     let s = !forceMinute ? `${hour}` : padLeft(hour || 0);
     if (minute || forceMinute)
         s += ':' + padLeft(minute || 0);
@@ -221,9 +204,13 @@ function timeToStr(hour, minute, forceMinute = false) {
  * the `place` field is omitted by default, unless an `__append_place__` is set to a truthy value.
  * set `__full_time__` to truthy and get fully-padded time string representation
  * @see customSessionStr
- * @type {import('./types').ClassInfoValueToStr<'sessions'>}
  */
-function defaultSessionToStr() {
+export function defaultSessionToStr(
+    this: ClassInfo['sessions'][0] & {
+        __full_time__?: boolean,
+        __append_place__?: boolean
+    }
+) {
     const t0 = timeToStr(this.starts.hour, this.starts.minute, !!this.__full_time__),
           t1 = timeToStr(this.ends.hour, this.ends.minute, !!this.__full_time__),
           d = dayToStr(this.day);
@@ -234,67 +221,49 @@ function defaultSessionToStr() {
     return tmp.trim();
 }
 
-/**
- * @template {import('./types').ClassInfo['sessions'][0]} U
- * @template {Array<U>|U} T
- * @param {T} itemOrItems
- * @param {undefined|boolean} appendPlace
- * @param {undefined|boolean} fullTime
- * @returns {T extends any[] ? string[] : string}
-*/
-function customSessionStr(itemOrItems, appendPlace = undefined, fullTime = undefined) {
+// TODO: screw around type system in order to find a way
+// of explicitly declaring the return type instead of compiler inferring it...
+export function customSessionStr<
+    T extends ClassInfo['sessions'][0],
+>(
+    itemOrItems: Array<T> | T,
+    appendPlace?: boolean,
+    fullTime?: boolean
+) {
     // bind the modified Session with corresponding flags
-    const mapper = item => defaultSessionToStr.call({
-        ...item,
-        __append_place__: appendPlace,
-        __full_time__: fullTime
-    });
+    const mapper = (item: T) =>
+        defaultSessionToStr.call({
+            ...item,
+            __append_place__: appendPlace,
+            __full_time__: fullTime
+        });
     return Array.isArray(itemOrItems)
         ? itemOrItems.map(mapper)
-        : mapper(itemOrItems);
+        : mapper(itemOrItems as T);
 }
 
-/** @type {import('./types').ClassInfoValueToStr<'exams'>} */
-function defaultExamToStr() {
+export function defaultExamToStr(this: ClassInfo['exams'][0]): string {
     return `${this.year}/${padLeft(this.month)}/${padLeft(this.day)} ${padLeft(this.hour)}:${padLeft(this.minute)}`;
 }
 
-function clamp(a, min, max) {
+export function clamp(a: number, min: number, max: number) {
     return Math.min(Math.max(a, min), max);
 }
 
-/**
- * permutations of two arrays, e.g. `[a, b] * [c, d] = [ac,ad,bc,bd]`
- * @template T
- * @template [U=T]
- * @param {T[]} p0
- * @param {U[]} p1
- * @returns {Array<{a: T, b: U}>}
- */
-function permutations(p0, p1) {
-    return p0.flatMap(a => p1.map( b => ({a, b}) ));
+/** permutations of two arrays, e.g. `[a, b] * [c, d] = [ac,ad,bc,bd]` */
+export function permutations<T, U=T>(p0: T[], p1: U[]): Array<{ a: T, b: U }> {
+    return p0.flatMap(a => p1.map(b => ({a, b})));
 }
 
-/**
- * @param {number} start
- * @param {number} stop
- * @param {number} step
- * @returns {number[]}
- */
-function rangeArray(start, stop, step = 1) {
+export function rangeArray(start: number, stop: number, step = 1): number[] {
     return Array.from(
         { length: (stop - start) / step + 1 },
         (_, index) => (start + index * step)
     );
 }
 
-/**
- * creates time spans in the given range, e.g. `(start: 10, end: 12, span: 30) => [10:00, 10:30, 11:00, 11:30, 12:00]`
- * @param {number} startHour
- * @param {number} endHour
- * @param {number} minuteSpan
- */
-function makeTimeSpans(startHour, endHour, minuteSpan) {
+/** creates time spans in the given range, e.g. `(start: 10, end: 12, span: 30) => [10:00, 10:30, 11:00, 11:30, 12:00]` */
+export function makeTimeSpans(startHour: number, endHour: number, minuteSpan: number) {
     return permutations(
         rangeArray(
             clamp(startHour, 0, 23),
@@ -309,42 +278,24 @@ function makeTimeSpans(startHour, endHour, minuteSpan) {
  * used to determine the smallest interval for different times.
  * e.g. `[15, 30] => 15`, meaning you will need 15-minute intervals in order
  * to fit all possible time fractions in your planner, since 30 mins is two 15 mins.
- * @param {number} a
- * @param {number} b
- * @return {number}
  */
-function gcd(a, b) {
+export function gcd(a: number, b: number): number {
     if (a === 0) return b;
     return gcd(b % a, a);
 }
 
 /**
- * @template [T=number]
- * @param {T} a
- * @param {T} b
- * @param {T} c
- * @param {T} d
- * @param {undefined|boolean} inclusive [08:00, 09:00] and [09:00, 10:00] are inclusive overlapping
- * @returns {boolean}
+ * @param inclusive [08:00, 09:00] and [09:00, 10:00] are inclusive overlapping
  * @see https://stackoverflow.com/questions/36011227/javascript-check-if-time-ranges-overlap
  */
-function rangesOverlap(a, b, c, d, inclusive = undefined) {
+export function rangesOverlap<T = number>(a: T, b: T, c: T, d: T, inclusive?: boolean): boolean {
     return inclusive
         ? (b >= c && a <= d)
         : (b >  c && a <  d);
 }
 
-/**
- * @template T
- * @template [U=T]
- * @template [K=T]
- * fill an `array` with `filler` in between
- * @param {T[]} array
- * @param {U} filler
- * @param {undefined|((item: T) => K)} itemMapper
- * @returns {Array<T|U|K>}
- */
-function fillBetweenArray(array, filler, itemMapper = undefined) {
+/** fill an `array` with `filler` in between */
+export function fillBetweenArray<T, U=T, K=T>(array: T[], filler: U, itemMapper?: ((item: T) => K)): Array<T|U|K> {
     return (array.length < 2) ? array : [...array.flatMap((value, index) => {
         const mapped = (itemMapper === undefined)
             ? value
@@ -355,26 +306,3 @@ function fillBetweenArray(array, filler, itemMapper = undefined) {
             : [mapped, filler];
     })];
 }
-
-export {
-    classInfoKeyTitles,
-    defaultEmptyCell,
-    daysOfWeek,
-    sanitizeFarsi,
-    dayFromStr,
-    dayToStr,
-    padLeft,
-    timeEq,
-    parseXLSX,
-    defaultExamToStr,
-    defaultSessionToStr,
-    clamp,
-    timeToStr,
-    makeTimeSpans,
-    rangeArray,
-    permutations,
-    gcd,
-    rangesOverlap,
-    fillBetweenArray,
-    customSessionStr,
-};
