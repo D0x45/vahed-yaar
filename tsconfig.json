@@ -1,9 +1,5 @@
 {
     "compilerOptions": {
-        "noImplicitAny": true,
-        "strict": true,
-        "strictNullChecks": true,
-        "alwaysStrict": true,
         "noUnusedParameters": true,
         "noUnusedLocals": true,
         "module": "es6",

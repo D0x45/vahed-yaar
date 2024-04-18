@@ -61,12 +61,20 @@ export function parseExamOrSession(
     }
 
     if (raw.startsWith('امتحان')) {
-        const date = raw.match(/[0-9]{4}\.[0-9]{2}\.[0-9]{2}/)?.at(0)?.split('.', 3).map(v => +v || 0);
+        const date = [0,0,0];
+        const matches = raw.match(/[0-9]{4}\.[0-9]{2}\.[0-9]{2}/);
+        if (matches !== null) {
+            const first_match = matches[0];
+            const splitted = first_match.split('.', 3);
+            date[0] = +splitted[0] || 0;
+            date[1] = +splitted[1] || 0;
+            date[2] = +splitted[2] || 0;
+        }
         const timeSpanValues = raw.substring(raw.indexOf(':') + 1).trim().split('-').map(v => v.split(':').map(v => +v || 0));
         const exam: ClassInfo['exams'][0] = {
-            year:  date ? date[0] : 0,
-            month: date ? date[1] : 0,
-            day:   date ? date[2] : 0,
+            year:  date[0],
+            month: date[1],
+            day:   date[2],
             hour: timeSpanValues[0][0] || 0,
             minute: timeSpanValues[0][1] || 0
         };
