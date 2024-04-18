@@ -120,9 +120,9 @@ export type RowIDGenerator = (rowValues: any[]) => string;
  * descriptor type for dataset loaders.
  * functions that take raw `File`s and return `Array<T>` on success and `undefined` on failure
  */
-export type DatasetLoader<T> = {
+export type DatasetLoader = {
     title: string,
-    fn: (f: File) => Promise<undefined | T[]>
+    fn: (f: File) => Promise<undefined | ClassInfo[]>
 };
 
-export type DatasetLoaderMap<T> = Record<string, DatasetLoader<T>>;
+export type DatasetLoaderMap = Record<string, DatasetLoader>;

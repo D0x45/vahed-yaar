@@ -20,9 +20,9 @@ const _input = [
 ].join(' ');
 
 
-function Navbar<T>(
+function Navbar(
     this: typeof Navbar,
-    { datasetLoaders }: { datasetLoaders: DatasetLoaderMap<T> }
+    { datasetLoaders }: { datasetLoaders: DatasetLoaderMap }
 ) {
     const name = this.constructor.name;
     const datasetTypes = Object.keys(datasetLoaders);

@@ -49,7 +49,7 @@ import './style.css'
 function makeLoaderFn(
     mapper: ExcelColumnMapper,
     idGen: RowIDGenerator,
-): DatasetLoader<ClassInfo>['fn'] {
+): DatasetLoader['fn'] {
     return async (file: File) => {
         const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
         let result: undefined | ClassInfo[];
@@ -73,11 +73,11 @@ function makeLoaderFn(
     }
 }
 
-function wrapLoaderWithState<T>(
-    loader: DatasetLoader<T>['fn'],
-    setDataRows: StateUpdater<T[]>,
-    setPickedRows: StateUpdater<T[]>,
-): DatasetLoader<T>['fn'] {
+function wrapLoaderWithState(
+    loader: DatasetLoader['fn'],
+    setDataRows: StateUpdater<ClassInfo[]>,
+    setPickedRows: StateUpdater<ClassInfo[]>,
+): DatasetLoader['fn'] {
     return async (file: File) => {
         const dataset = await loader(file);
         if (dataset !== undefined) {
@@ -88,7 +88,7 @@ function wrapLoaderWithState<T>(
     };
 }
 
-const presetLoaders: DatasetLoaderMap<ClassInfo> = {
+const presetLoaders: DatasetLoaderMap = {
     'bustan': {
         title: 'بوستان',
         fn: makeLoaderFn(Bustan.defaultMappers, Bustan.defaultGetRowId)
@@ -107,7 +107,7 @@ function App(
         enableSearch,
         customizableColumns,
     }: {
-        datasetLoaders: DatasetLoaderMap<ClassInfo>,
+        datasetLoaders: DatasetLoaderMap,
         maxCredit: number,
         pagination: number,
         enableSearch?: boolean,
@@ -118,13 +118,13 @@ function App(
 
     const [dataRows, setDataRows] = useState<ClassInfo[]>([]);
     const [pickedRows, setPickedRows] = useState<ClassInfo[]>([]);
-    const wrappedLoaders: DatasetLoaderMap<ClassInfo> = {};
+    const wrappedLoaders: DatasetLoaderMap = {};
 
     // wrap the given loaders to app states
     for (const loaderName in datasetLoaders) {
         wrappedLoaders[loaderName] = {
             title: datasetLoaders[loaderName].title,
-            fn: wrapLoaderWithState<ClassInfo>(
+            fn: wrapLoaderWithState(
                 datasetLoaders[loaderName].fn,
                 setDataRows, setPickedRows
             )
@@ -132,7 +132,7 @@ function App(
     }
 
     return h('div', { name, class: 'container mx-auto p-2.5' },
-        h(Navbar<ClassInfo>, { datasetLoaders: wrappedLoaders }),
+        h(Navbar, { datasetLoaders: wrappedLoaders }),
         h(DayMajorPlanner, {
             pickedRows, maxCredit,
             clearPicks: () => setPickedRows([])
