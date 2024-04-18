@@ -81,7 +81,9 @@ function wrapLoaderWithState(
     return async (file: File) => {
         const dataset = await loader(file);
         if (dataset !== undefined) {
+            // @ts-ignore: Not all constituents of type 'StateUpdater<ClassInfo[]>' are callable.
             setDataRows(dataset as ClassInfo[]);
+            // @ts-ignore: Not all constituents of type 'StateUpdater<ClassInfo[]>' are callable.
             setPickedRows([] as ClassInfo[]);
         }
         return undefined;
