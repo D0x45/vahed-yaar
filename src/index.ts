@@ -81,8 +81,8 @@ function wrapLoaderWithState(
     return async (file: File) => {
         const dataset = await loader(file);
         if (dataset !== undefined) {
-            setDataRows(dataset);
-            setPickedRows([]);
+            setDataRows(dataset as ClassInfo[]);
+            setPickedRows([] as ClassInfo[]);
         }
         return undefined;
     };
@@ -126,7 +126,8 @@ function App(
             title: datasetLoaders[loaderName].title,
             fn: wrapLoaderWithState(
                 datasetLoaders[loaderName].fn,
-                setDataRows, setPickedRows
+                setDataRows as StateUpdater<ClassInfo[]>,
+                setPickedRows as StateUpdater<ClassInfo[]>
             )
         };
     }

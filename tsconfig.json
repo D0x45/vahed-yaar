@@ -3,7 +3,7 @@
         "noUnusedParameters": true,
         "noUnusedLocals": true,
         "module": "es6",
-        "target": "ES2021",
+        "target": "ES2022",
         "jsx": "react",
         "allowJs": false,
         "moduleResolution": "node",
