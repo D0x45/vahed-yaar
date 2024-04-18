@@ -112,7 +112,7 @@ export function padLeft(a: any, len = 2, p = '0'): string {
 
 export async function parseXLSX(
     input: ArrayBuffer,
-    assigners: ExcelColumnMapper,
+    mappers: ExcelColumnMapper,
     getUniqueId: RowIDGenerator
 ): Promise<undefined | ClassInfo[]> {
     const wb = new ExcelJS.Workbook;
@@ -140,8 +140,8 @@ export async function parseXLSX(
         const values = row.values;
 
         // check for invalid row
-        if (!row.hasValues || !Array.isArray(values) || values.length < assigners.length) {
-            console.warn(`row ${i} has length of ${values.length} which is less than assigners.length=${assigners.length}`);
+        if (!row.hasValues || !Array.isArray(values) || values.length < mappers.length) {
+            console.warn(`row ${i} has length of ${values.length} which is less than mappers.length=${mappers.length}`);
             continue;
         }
 
@@ -175,7 +175,7 @@ export async function parseXLSX(
             };
 
 
-        assigners.forEach(
+        mappers.forEach(
             (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
                 values[index + 1],
                 //           ^^^

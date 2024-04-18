@@ -49,38 +49,65 @@ import './style.css'
 function makeLoaderFn(
     mapper: ExcelColumnMapper,
     idGen: RowIDGenerator,
-    updateDataset: StateUpdater<ClassInfo[]>,
-    setPickedRows: StateUpdater<ClassInfo[]>,
-): DatasetLoader['fn'] {
+): DatasetLoader<ClassInfo>['fn'] {
     return async (file: File) => {
-        let result = undefined;
         const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
-
-        if (ext !== 'xlsx')
-            return alert(`file type '${ext}' is not supported!`);
+        let result: undefined | ClassInfo[];
 
         try {
-            result = await util.parseXLSX(await file.arrayBuffer(), mapper, idGen);
+            switch (ext) {
+                case 'xlsx':
+                    result = await util.parseXLSX(await file.arrayBuffer(), mapper, idGen);
+                    break;
+                default:
+                    throw new Error(`file type '${ext}' is not supported!`)
+            }
+            if (result === undefined || result.length === 0)
+                throw new Error('there was a problem parsing the dataset!');
         } catch (e) {
-            return alert(e);
+            alert(e);
+            return undefined;
         }
 
-        if (result === undefined)
-            return alert('there was a problem parsing the dataset!');
-
-        updateDataset(result);
-        setPickedRows([]);
+        return result;
     }
 }
 
+function wrapLoaderWithState<T>(
+    loader: DatasetLoader<T>['fn'],
+    setDataRows: StateUpdater<T[]>,
+    setPickedRows: StateUpdater<T[]>,
+): DatasetLoader<T>['fn'] {
+    return async (file: File) => {
+        const dataset = await loader(file);
+        if (dataset !== undefined) {
+            setDataRows(dataset);
+            setPickedRows([]);
+        }
+        return undefined;
+    };
+}
+
+const presetLoaders: DatasetLoaderMap<ClassInfo> = {
+    'bustan': {
+        title: 'بوستان',
+        fn: makeLoaderFn(Bustan.defaultMappers, Bustan.defaultGetRowId)
+    },
+    'golestan': {
+        title: 'گلستان',
+        fn: makeLoaderFn(Golestan.defaultMapper, Golestan.defaultGetRowId)
+    }
+};
+
 function App(
-    this: typeof App,
-    {
+    this: typeof App, {
+        datasetLoaders,
         maxCredit,
         pagination,
         enableSearch,
         customizableColumns,
-    } : {
+    }: {
+        datasetLoaders: DatasetLoaderMap<ClassInfo>,
         maxCredit: number,
         pagination: number,
         enableSearch?: boolean,
@@ -91,21 +118,21 @@ function App(
 
     const [dataRows, setDataRows] = useState<ClassInfo[]>([]);
     const [pickedRows, setPickedRows] = useState<ClassInfo[]>([]);
+    const wrappedLoaders: DatasetLoaderMap<ClassInfo> = {};
 
-    /** @todo find a better way to accept this as a prop and bind it to `setDataRows` (maybe currying?) */
-    const datasetLoaders: DatasetLoaderMap = {
-        'bustan': {
-            title: 'بوستان',
-            fn: makeLoaderFn(Bustan.defaultMappers, Bustan.defaultGetRowId, setDataRows, setPickedRows)
-        },
-        'golestan': {
-            title: 'گلستان',
-            fn: makeLoaderFn(Golestan.defaultMapper, Golestan.defaultGetRowId, setDataRows, setPickedRows)
-        }
-    };
+    // wrap the given loaders to app states
+    for (const loaderName in datasetLoaders) {
+        wrappedLoaders[loaderName] = {
+            title: datasetLoaders[loaderName].title,
+            fn: wrapLoaderWithState<ClassInfo>(
+                datasetLoaders[loaderName].fn,
+                setDataRows, setPickedRows
+            )
+        };
+    }
 
     return h('div', { name, class: 'container mx-auto p-2.5' },
-        h(Navbar, { datasetLoaders }),
+        h(Navbar<ClassInfo>, { datasetLoaders: wrappedLoaders }),
         h(DayMajorPlanner, {
             pickedRows, maxCredit,
             clearPicks: () => setPickedRows([])
@@ -135,6 +162,7 @@ function App(
 
 render(
     h(App, {
+        datasetLoaders: presetLoaders,
         maxCredit: 24,
         pagination: 15,
         enableSearch: true,
