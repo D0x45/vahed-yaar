@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build-dev": "webpack --config webpack.dev.js",
-    "build-prod": "webpack --config webpack.prod.js"
+    "build": "webpack --config webpack.prod.js"
   },
   "devDependencies": {
     "css-loader": "^6.10.0",
