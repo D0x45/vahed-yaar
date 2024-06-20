@@ -2,15 +2,17 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-    mode: 'production',
-    devtool: 'source-map',
     entry: './src/index.ts',
-    stats: {
-        errorDetails: true
-    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './src/index.html',
+            filename: 'index.html',
+        }),
+    ],
     output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: "bundle.js",
+        path: path.resolve('./dist'),
+        filename: 'index.js',
+        clean: true,
     },
     module: {
         rules: [
@@ -20,7 +22,7 @@ module.exports = {
             },
             {
                 test: /\.css$/i,
-                include: path.resolve(__dirname, 'src'),
+                include: path.resolve('./src'),
                 use: ['style-loader', 'css-loader', 'postcss-loader'],
             },
             {
@@ -30,12 +32,6 @@ module.exports = {
             },
         ]
     },
-    plugins: [
-        new HtmlWebpackPlugin({
-            template: './src/index.html',
-            filename: 'index.html',
-        }),
-    ],
     resolve: {
         extensions: ['.ts', '.js', '.css']
     },

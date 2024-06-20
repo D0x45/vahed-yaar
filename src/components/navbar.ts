@@ -7,9 +7,15 @@ import { useState } from 'preact/hooks';
 
 // ! TODO: localization and custom css
 const _cls = 'flex justify-center mb-4';
-const _button = {
+const _load_btn_normal = {
     class: 'bg-blue-500 hover:bg-blue-700 text-white px-2 mr-2 rounded',
+    disabled: false,
     text: 'بارگذاری'
+};
+const _load_btn_progress = {
+    class: 'bg-gray-400 disabled hover:bg-blue-700 text-white px-2 mr-2 rounded',
+    disabled: true,
+    text: '...'
 };
 const _input = [
     'bg-gray-200 border-gray-200 text-gray-700',
@@ -27,6 +33,7 @@ function Navbar(
     const name = this.constructor.name;
     const datasetTypes = Object.keys(datasetLoaders);
 
+    const [btnProperties, setBtnProperties] = useState(_load_btn_normal);
     const [type, setType] = useState(datasetTypes[0]);
     const [file, setFile] = useState<File | undefined>(undefined);
 
@@ -36,26 +43,22 @@ function Navbar(
             class: _input,
             onChange: (e: any) => setFile(e.target?.files[0])
         }),
-        h('select', { class: _button.class },
+        h('select', { class: _load_btn_normal.class },
             datasetTypes.map(value => h('option', {
-                value, onclick: () => setType(value)
+                value, onClick: () => setType(value)
             }, datasetLoaders[value].title))
         ),
         h('button', {
             type: 'button',
-            class: _button.class,
-            onClick: (e: any) => {
+            class: btnProperties.class,
+            disabled: btnProperties.disabled,
+            onClick: () => {
                 if (!file || !type) return;
-                e.target.setAttribute('disabled', '1');
-                e.target.classList.add('disabled', 'bg-gray-400');
-                e.target.textContent = '...';
-                datasetLoaders[type].fn(file).then(() => {
-                    e.target.removeAttribute('disabled');
-                    e.target.classList.remove('disabled', 'bg-gray-400');
-                    e.target.textContent = _button.text;
-                });
+                setBtnProperties(_load_btn_progress);
+                datasetLoaders[type].fn(file)
+                    .then(() => setBtnProperties(_load_btn_normal));
             }
-        }, _button.text)
+        }, btnProperties.text)
     );
 }
 

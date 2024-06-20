@@ -93,12 +93,12 @@ function Table<T extends Record<string, any>>(
                     // next page button
                     h('button', {
                         class: _pg_btn,
-                        onclick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
+                        onClick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
                     }, _next_pg),
                     // previous page
                     h('button', {
                         class: _pg_btn,
-                        onclick: () => setPage(p => ((p - 1) * pagination) < 1 ? p : --p)
+                        onClick: () => setPage(p => ((p - 1) * pagination) < 1 ? p : --p)
                     }, _prev_pg),
                     // columns checkbox
                     ...columns.map(col => customizableColumns ? [

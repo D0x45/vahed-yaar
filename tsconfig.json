@@ -6,6 +6,12 @@
         "target": "ES2022",
         "jsx": "react",
         "allowJs": false,
-        "moduleResolution": "node",
-    }
+        "strict": true,
+        "skipLibCheck": true,
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noFallthroughCasesInSwitch": true
+    },
+    "include": ["./src/*.ts"]
 }
