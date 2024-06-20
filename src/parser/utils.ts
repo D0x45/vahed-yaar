@@ -285,13 +285,27 @@ export function gcd(a: number, b: number): number {
 }
 
 /**
- * @param inclusive [08:00, 09:00] and [09:00, 10:00] are inclusive overlapping
+ * check if the two given ranges (a and b) overlap.
+ * @param exclusive Default's to `false`. Since [08:00, 09:00] and [09:00, 10:00] are inclusive overlapping
  * @see https://stackoverflow.com/questions/36011227/javascript-check-if-time-ranges-overlap
  */
-export function rangesOverlap<T = number>(a: T, b: T, c: T, d: T, inclusive?: boolean): boolean {
-    return inclusive
-        ? (b >= c && a <= d)
-        : (b >  c && a <  d);
+export function rangesOverlap<T extends number>(
+    a0: T, a1: T,
+    b0: T, b1: T,
+    exclusive = false,
+): boolean {
+    // exclusive = false
+    // [a0        a1]
+    // [b0        b1]
+    // overlap = false
+
+    // exclusive = true
+    //  [a0      a1]
+    // [b0        b1]
+    // overlap = true
+
+    return (a1 > (b0 - (+exclusive)) )
+        && (a0 < (b1 + (+exclusive)) );
 }
 
 /** fill an `array` with `filler` in between */
