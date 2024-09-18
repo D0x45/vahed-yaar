@@ -116,13 +116,18 @@ export async function parseXLSX(
     getUniqueId: RowIDGenerator
 ): Promise<undefined | ClassInfo[]> {
     const wb = new ExcelJS.Workbook;
+
+    console.debug('[UTIL] loading excel file...');
+
     await wb.xlsx.load(
         input,
         { ignoreNodes: ['dataValidations'] }
     );
 
-    if (wb.worksheets.length === 0)
+    if (wb.worksheets.length === 0) {
+        console.error('excel workbook has zero worksheets.');
         return undefined;
+    }
 
     const sheet = wb.worksheets[0];
     const items: ClassInfo[] = [];
@@ -158,6 +163,8 @@ export async function parseXLSX(
             // acquire the last index of the array since we are pushing items to the end
             : (idxMap[rowId] = items.length);
 
+        console.debug(`[UTIL] i=${i}, rowId=${rowId}, itemIdx=${itemIdx}`);
+
         // init the empty class info
         if (items[itemIdx] === undefined)
             items[itemIdx] = {
@@ -173,7 +180,6 @@ export async function parseXLSX(
                 exams: [],
                 sessions: [],
             };
-
 
         mappers.forEach(
             (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
@@ -243,7 +249,13 @@ export function customSessionStr<
 }
 
 export function defaultExamToStr(this: ClassInfo['exams'][0]): string {
-    return `${this.year}/${padLeft(this.month)}/${padLeft(this.day)} ${padLeft(this.hour)}:${padLeft(this.minute)}`;
+    let tmp = `${this.year}/${padLeft(this.month)}/${padLeft(this.day)} ${padLeft(this.hour)}:${padLeft(this.minute)}`;
+
+    if (this.ends !== undefined) {
+        tmp += `-${padLeft(this.ends.hour)}:${padLeft(this.ends.minute)}`;
+    }
+
+    return tmp;
 }
 
 export function clamp(a: number, min: number, max: number) {

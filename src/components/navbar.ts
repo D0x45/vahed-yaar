@@ -25,7 +25,6 @@ const _input = [
     'w-full'
 ].join(' ');
 
-
 function Navbar(
     this: typeof Navbar,
     { datasetLoaders }: { datasetLoaders: DatasetLoaderMap }
@@ -36,6 +35,10 @@ function Navbar(
     const [btnProperties, setBtnProperties] = useState(_load_btn_normal);
     const [type, setType] = useState(datasetTypes[0]);
     const [file, setFile] = useState<File | undefined>(undefined);
+
+    console.debug(`[${name}] btnProperties=`, btnProperties);
+    console.debug(`[${name}] type=`, btnProperties);
+    console.debug(`[${name}] file=`, btnProperties);
 
     return h('div', { name, class: _cls },
         h('input', {

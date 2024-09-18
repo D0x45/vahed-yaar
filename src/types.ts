@@ -80,7 +80,7 @@ export interface ClassInfo {
      * bustan: `تاريخ‌ امتحان`,
      * golestan: `زمان و مكان ارائه/ امتحان`
      */
-    exams: Array<Epoch & Time>
+    exams: Array<Epoch & Time & { ends?: Time }>
 };
 
 type _Assigner = (value: any, o: ClassInfo) => any;

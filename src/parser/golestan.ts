@@ -27,9 +27,16 @@ export function parseExamOrSession(
         || raw.length === 0 || raw === util.defaultEmptyCell
     ) return [undefined, undefined, undefined];
 
+    console.debug(
+        '[GOLESTAN] parseExamOrSession(\nraw=', raw,
+        '\nsessionToStr=', sessionToStr.name,
+        '\nexamToStr=', examToStr.name, ')'
+    );
+
     if (raw.startsWith('درس') || raw.startsWith('حل')) {
-        const afterFirstColon = raw.substring(raw.indexOf(':') + 1);
-        const sessionTypeIdentifier = raw.charAt(raw.indexOf('(') + 1);
+        const firstColonIndex = raw.indexOf(':');
+        // const afterFirstColon = raw.substring(raw.indexOf(':') + 1);
+        const sessionTypeIdentifier = raw.charAt(firstColonIndex - 2);
         // [sessionTypeIdentifier]
         //      |
         //      |   [dayStr]             [oddOrEvenFlag] this character may not exist at all
@@ -40,18 +47,52 @@ export function parseExamOrSession(
         //                   |[timeSpan]|
         //                   |          posFirstSpaceAfterFirstDigit
         //                   posFirstDigitAfterFirstColon
-        const posFirstDigitAfterFirstColon = afterFirstColon.search(/[0-9]/);
-        const posFirstSpaceAfterFirstDigit = afterFirstColon.indexOf(' ', posFirstDigitAfterFirstColon);
-        const dayStr = afterFirstColon.substring(0, posFirstDigitAfterFirstColon).trim();
-        const timeSpan = afterFirstColon.substring(posFirstDigitAfterFirstColon, posFirstSpaceAfterFirstDigit);
-        const oddOrEvenFlag = afterFirstColon.charAt(posFirstSpaceAfterFirstDigit + 1);
-        const place = afterFirstColon.substring(afterFirstColon.indexOf(':', posFirstSpaceAfterFirstDigit) + 1).trim();
-        const timeSpanValues = timeSpan.split('-').map(v => v.split(':').map(v => +v || 0));
+        const timeSpanStr = raw.match(
+            /([0-9]{2}\:[0-9]{2})\-([0-9]{2}\:[0-9]{2})/
+        );
+
+        if (!timeSpanStr || timeSpanStr.length == 0) {
+            console.error('[GOLESTAN] timeSpanStr must be a valid string!');
+            return [undefined, undefined, undefined];
+        }
+
+        const dayStr = raw.slice(
+            firstColonIndex + 1, /* inclusive */
+            timeSpanStr.index /* exclusive */
+        ).trim();
+
+        const tmp = raw.slice((timeSpanStr.index || 0) + timeSpanStr[0].length).trim();
+        const timeSpanValues = timeSpanStr[0].split('-').map(v => v.split(':').map(v => +v || 0));
+
+        let oddOrEvenFlag: 'odd' | 'even' | undefined = undefined;
+        let place = undefined;
+
+        if (tmp.length > 0) {
+            if (tmp[0] === 'ز') oddOrEvenFlag = 'even';
+            if (tmp[0] === 'ف') oddOrEvenFlag = 'odd';
+
+            const tmp2 = tmp.slice( +(oddOrEvenFlag !== undefined) ).trim();
+            if (tmp2.startsWith('مکان:')) {
+                place = tmp2.slice(6).trim();
+            }
+        }
+
+        console.debug(
+            '[GOLESTAN]\n',
+            `firstColonIndex=${firstColonIndex}\n`,
+            `sessionTypeIdentifier=${sessionTypeIdentifier}\n`,
+            `timeSpanStr=${timeSpanStr[0]}\n`,
+            `dayStr=${dayStr}\n`,
+            `tmp=${tmp}\n`,
+            `oddOrEvenFlag=${oddOrEvenFlag}\n`,
+            `place=${place}\n`,
+            'timeSpanValues=', timeSpanValues, '\n'
+        );
+
         const session: ClassInfo['sessions'][0] = {
             starts: { hour: timeSpanValues[0][0], minute: timeSpanValues[0][1] },
             ends:   { hour: timeSpanValues[1][0], minute: timeSpanValues[1][1] },
-            /** @type {undefined|'odd'|'even'} */
-            dates: (oddOrEvenFlag === 'ز') ? 'even' : (oddOrEvenFlag === 'ف' ? 'odd' : undefined),
+            dates: oddOrEvenFlag,
             day: util.dayFromStr(dayStr),
             place: place ? util.sanitizeFarsi(place) : undefined
         };
@@ -76,9 +117,19 @@ export function parseExamOrSession(
             month: date[1],
             day:   date[2],
             hour: timeSpanValues[0][0] || 0,
-            minute: timeSpanValues[0][1] || 0
+            minute: timeSpanValues[0][1] || 0,
+            ends: {
+                hour: timeSpanValues[1][0] || 0,
+                minute: timeSpanValues[1][1] || 0,
+            }
         };
         exam.toString = examToStr;
+
+        console.debug(
+            '[GOLESTAN]\n',
+            'exam=',exam,'\n',
+            `timeSpanValues=`,timeSpanValues
+        );
 
         return ['exams', exam, undefined];
     }
@@ -92,6 +143,9 @@ export const defaultMapper: ExcelColumnMapper = [
     /* C */ undefined,
     /* D */ undefined,
     /* E */ (value, o) => {
+        // i hate edge cases >:|
+        if (typeof value !== 'string') return;
+
         const [courseId, classId] = value.split('_');
         o.courseId = +courseId || 0;
         o.id = +`${courseId}${classId}` || 0;
@@ -100,7 +154,7 @@ export const defaultMapper: ExcelColumnMapper = [
     /* G */ (value, o) => o.credit = +value || 0,
     /* H */ undefined,
     /* I */ (value, o) => o.capacity = +value || 0,
-    /* J */ undefined,
+    /* J */ (value, o) => o.capacity -= +value || 0,
     /* K */ undefined,
     /* L */ undefined,
     /* M */ (value, o) => {

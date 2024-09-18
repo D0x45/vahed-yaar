@@ -78,6 +78,13 @@ function Table<T extends Record<string, any>>(
     const p0 = pagination * (page - 1);
     const p1 = pagination * page;
 
+    console.debug(`[${name}] hiddenCols=`, hiddenCols);
+    console.debug(`[${name}] query=`, query);
+    console.debug(`[${name}] page=`, page);
+    console.debug(`[${name}] columns=`, columns);
+    console.debug(`[${name}] p0=`, p0);
+    console.debug(`[${name}] p1=`, p1);
+
     return h('div', { name, class: 'flex justify-center mb-4' },
         // invalid data alert:
         invalidData ? h('span', { class: _alert_class }, _alert_text) :

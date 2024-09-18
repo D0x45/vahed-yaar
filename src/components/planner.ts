@@ -50,6 +50,10 @@ function DayMajorPlanner(
         }
     }
 
+    console.debug(`[${name}] invalidOrNoData=`, invalidOrNoData);
+    console.debug(`[${name}] totalPickedCredit=`, invalidOrNoData);
+    console.debug(`[${name}] picksByDay=`, invalidOrNoData);
+
     return h('div', { name, class: 'flex justify-center mb-4' },
         invalidOrNoData ? h('span', { class: _alert.class }, _alert.text) :
             h('table', { class: _tbl },

@@ -43,6 +43,7 @@ import * as Golestan from './parser/golestan';
 import Navbar from './components/navbar';
 import DayMajorPlanner from './components/planner';
 import Table from './components/table';
+import Footer from './components/footer';
 
 import './style.css'
 
@@ -57,7 +58,10 @@ function makeLoaderFn(
         try {
             switch (ext) {
                 case 'xlsx':
-                    result = await util.parseXLSX(await file.arrayBuffer(), mapper, idGen);
+                    result = await util.parseXLSX(
+                        await file.arrayBuffer(),
+                        mapper, idGen
+                    );
                     break;
                 default:
                     throw new Error(`file type '${ext}' is not supported!`)
@@ -65,8 +69,9 @@ function makeLoaderFn(
             if (result === undefined || result.length === 0)
                 throw new Error('there was a problem parsing the dataset!');
         } catch (e) {
-            alert(e);
-            return undefined;
+            /** @ts-ignore */
+            alert(`${e.name}: ${e.message}\n${e.stack}`);
+            throw e; // :D
         }
 
         return result;
@@ -134,6 +139,11 @@ function App(
         };
     }
 
+    console.debug(`[${name}] datasetLoaders=`, datasetLoaders);
+    console.debug(`[${name}] wrappedLoaders=`, wrappedLoaders);
+    console.debug(`[${name}] pickedRows=`, pickedRows);
+    console.debug(`[${name}] dataRows=`, dataRows);
+
     return h('div', { name, class: 'container mx-auto p-2.5' },
         h(Navbar, { datasetLoaders: wrappedLoaders }),
         h(DayMajorPlanner, {
@@ -160,6 +170,7 @@ function App(
                 // !isSelected && !alreadyIncludes
             },
         }),
+        h(Footer, null),
     );
 }
 
