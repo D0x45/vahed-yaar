@@ -178,7 +178,7 @@ render(
     h(App, {
         datasetLoaders: presetLoaders,
         maxCredit: 24,
-        pagination: 15,
+        pagination: 30,
         enableSearch: true,
         customizableColumns: true,
     }),
