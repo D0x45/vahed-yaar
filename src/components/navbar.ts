@@ -37,8 +37,8 @@ function Navbar(
     const [file, setFile] = useState<File | undefined>(undefined);
 
     console.debug(`[${name}] btnProperties=`, btnProperties);
-    console.debug(`[${name}] type=`, btnProperties);
-    console.debug(`[${name}] file=`, btnProperties);
+    console.debug(`[${name}] type=`, type);
+    console.debug(`[${name}] file=`, file);
 
     return h('div', { name, class: _cls },
         h('input', {
