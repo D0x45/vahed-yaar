@@ -154,7 +154,7 @@ export async function parseXLSX(
                values.slice(1)
             // ^ skip the first item, since ExcelJS yields a null value at index 0
             // https://github.com/exceljs/exceljs/issues/698
-            // indexing in xlsx files starts from number 1 (eg. A1 point to row 1 and column 1)
+            // indexing in xlsx files starts from number 1 (eg. A1 points to row 1 and column 1)
             // setting null at the start is much easier than always recalculating from 0 based to 1 based indexing
         );
         const itemIdx = typeof idxMap[rowId] === 'number'
