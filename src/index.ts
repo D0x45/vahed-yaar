@@ -113,12 +113,14 @@ function App(
         pagination,
         enableSearch,
         customizableColumns,
+        storePreferencesInLocalStorage,
     }: {
         datasetLoaders: DatasetLoaderMap,
         maxCredit: number,
         pagination: number,
         enableSearch?: boolean,
         customizableColumns?: boolean,
+        storePreferencesInLocalStorage?: boolean,
     }
 ) {
     const name = this.constructor.name;
@@ -156,6 +158,7 @@ function App(
             pagination,
             enableSearch,
             customizableColumns,
+            storePreferencesInLocalStorage,
             isSelected: (row: ClassInfo) => pickedRows.some(c => c.id === row.id),
             setSelect: (row: ClassInfo, isSelected: boolean) => {
                 const alreadyIncludes = pickedRows.some(c => c.id === row.id);
@@ -182,6 +185,7 @@ render(
         pagination: 30,
         enableSearch: true,
         customizableColumns: true,
+        storePreferencesInLocalStorage: true,
     }),
     document.body
 );

@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo, useState, useEffect } from 'preact/hooks';
 
 import * as util from '../parser/utils';
 
@@ -48,7 +48,7 @@ function Table<T extends Record<string, any>>(
         dataRows, columnTitles, pagination,
         customizableColumns,
         enableSearch, isSelected, setSelect,
-        searchBoxHint
+        searchBoxHint, storePreferencesInLocalStorage
     }: {
         dataRows: T[],
         columnTitles: Record<keyof T, string>,
@@ -57,7 +57,8 @@ function Table<T extends Record<string, any>>(
         enableSearch?: boolean,
         isSelected?: ((row: T) => boolean),
         setSelect?: ((row: T, x: boolean) => void),
-        searchBoxHint?: string
+        searchBoxHint?: string,
+        storePreferencesInLocalStorage?: boolean,
     }
 ) {
     const name = this.constructor.name;
@@ -67,6 +68,24 @@ function Table<T extends Record<string, any>>(
     const [page, setPage] = useState(1);
     const [hiddenCols, setHiddenCols] = useState<string[]>([]);
     const [query, setQuery] = useState('');
+
+    // use localStorage to store hiddenCols
+    if (!!storePreferencesInLocalStorage) {
+        useEffect(() => {
+            const storedHiddenCols = localStorage.getItem('hiddenColumns');
+            if (storedHiddenCols !== null) {
+                const p = JSON.parse(storedHiddenCols);
+                setHiddenCols(p);
+            }
+        }, []);
+
+        useEffect(() => {
+            localStorage.setItem(
+                'hiddenColumns',
+                JSON.stringify(hiddenCols)
+            );
+        }, [hiddenCols]);
+    }
 
     const items = useMemo<Array<Record<keyof typeof columnTitles, any>>>(() => {
         // reset page on change
