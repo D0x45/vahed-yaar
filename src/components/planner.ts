@@ -21,6 +21,10 @@ const _clr = {
     class: 'text-gray-500 border border-gray-500 px-1 mr-1 rounded',
     text: 'حذف همه'
 };
+const _export = {
+    class: _clr.class,
+    text: 'دریافت خروجی'
+};
 
 function DayMajorPlanner(
     this: typeof DayMajorPlanner,
@@ -66,7 +70,20 @@ function DayMajorPlanner(
                             h('button', {
                                 class: _clr.class,
                                 onClick: clearPicks
-                            }, _clr.text)
+                            }, _clr.text),
+                            h('button', {
+                                class: _export.class,
+                                onClick: () => {
+                                    // meow
+                                    window.open(
+                                        window.URL.createObjectURL(
+                                            util.makeCSV(
+                                                picksByDay.flat(1)
+                                            )
+                                        )
+                                    );
+                                }
+                            }, _export.text)
                         ),
                     )
                 ),

@@ -332,3 +332,18 @@ export function fillBetweenArray<T, U=T, K=T>(array: T[], filler: U, itemMapper?
             : [mapped, filler];
     })];
 }
+
+/** create a simple csv export for reusing later */
+export function makeCSV(items: ClassInfo[]): Blob {
+    const csv_data = new TextEncoder().encode([
+        Object.keys(items[0])
+            // @ts-ignore: sigh... i don't even know why it's not deducing the type.
+            .map((k: keyof ClassInfo) => classInfoKeyTitles[k])
+            .join(','),
+        ...items.map(c => Object.values(c).join(','))
+    ].join('\r\n'));
+    // TODO: this probably needs a better implementation
+    return new Blob(['\uFEFF', csv_data], {
+        type: 'text/csv;charset=utf-8'
+    });
+}
