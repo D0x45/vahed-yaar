@@ -48,6 +48,7 @@ function Table<T extends Record<string, any>>(
         dataRows, columnTitles, pagination,
         customizableColumns,
         enableSearch, isSelected, setSelect,
+        searchBoxHint
     }: {
         dataRows: T[],
         columnTitles: Record<keyof T, string>,
@@ -56,6 +57,7 @@ function Table<T extends Record<string, any>>(
         enableSearch?: boolean,
         isSelected?: ((row: T) => boolean),
         setSelect?: ((row: T, x: boolean) => void),
+        searchBoxHint?: string
     }
 ) {
     const name = this.constructor.name;
@@ -127,7 +129,7 @@ function Table<T extends Record<string, any>>(
                     enableSearch ? h('input', {
                         type: 'text',
                         class: _input_class,
-                        placeholder: _input_placeholder,
+                        placeholder: searchBoxHint || _input_placeholder,
                         onChange: ({ target }) => {
                             const newQuery = target && ('value' in target) && (typeof target.value === 'string')
                                 ? target.value.trim()

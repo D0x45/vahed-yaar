@@ -169,6 +169,7 @@ function App(
                 //  isSelected && alreadyIncludes
                 // !isSelected && !alreadyIncludes
             },
+            searchBoxHint: 'برای مثال «روز:شنبه» را جستجو کنید...'
         }),
         h(Footer, null),
     );

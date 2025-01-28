@@ -96,6 +96,14 @@ export function parseExamOrSession(
             day: util.dayFromStr(dayStr),
             place: place ? util.sanitizeFarsi(place) : undefined
         };
+
+        // @ts-ignore: toJSON does not exist on type session. yeah no shit.
+        session.toJSON = function (this: ClassInfo['sessions'][0]) {
+            return {
+                ...this,
+                __day_str: 'روز:' + util.dayToStr(this.day)
+            };
+        };
         session.toString = sessionToStr;
 
         return ['sessions', session, sessionTypeIdentifier];

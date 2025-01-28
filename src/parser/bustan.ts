@@ -18,6 +18,11 @@ export function parseSessions(raw: any, toStr: ClassInfoFieldStringifier<'sessio
         || raw.length === 0 || raw === util.defaultEmptyCell
     ) return [];
 
+    console.debug(
+        '[BUSTAN] parseSessions(\nraw=', raw,
+        '\toStr=', toStr.name
+    );
+
     const [s, e] = [...raw.matchAll(/[0-9]{2}:[0-9]{2}/g)]
         .map(x => x[0].split(':').map(a => +a || 0));
     const farsiDayStr = raw.split(/[0-9]{2}:[0-9]{2}/).at(0);
@@ -26,6 +31,14 @@ export function parseSessions(raw: any, toStr: ClassInfoFieldStringifier<'sessio
         starts: { hour: +(s && s[0]), minute: +(s && s[1]) },
         ends:   { hour: +(e && e[0]), minute: +(e && e[1]) },
         day: farsiDayStr ? util.dayFromStr(farsiDayStr) : undefined,
+    };
+
+    // @ts-ignore: toJSON does not exist on type session. yeah no shit.
+    session.toJSON = function (this: ClassInfo['sessions'][0]) {
+        return {
+            ...this,
+            __day_str: 'روز:' + util.dayToStr(this.day)
+        };
     };
     session.toString = toStr;
 
@@ -37,6 +50,11 @@ export function parseExams(raw: any, toStr: ClassInfoFieldStringifier<'exams'>):
         !raw || typeof raw !== 'string'
         || raw.length === 0 || raw === util.defaultEmptyCell
     ) return [];
+
+    console.debug(
+        '[BUSTAN] parseExams(\nraw=', raw,
+        '\toStr=', toStr.name
+    );
 
     const [a, _, b] = raw.split(' ');
     const d = a.split('/');
