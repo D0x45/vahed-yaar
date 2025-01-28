@@ -71,9 +71,14 @@ function Table<T extends Record<string, any>>(
     const items = useMemo<Array<Record<keyof typeof columnTitles, any>>>(() => {
         // reset page on change
         setPage(1);
+        // split query into subqueries
+        const subqueries = query.trim().split(' ');
         // ! TODO: improve generic search
         return query
-            ? dataRows.filter(r => JSON.stringify(r).includes(query))
+            ? dataRows.filter(r => {
+                const rowStr = JSON.stringify(r);
+                return !!subqueries.filter(q => rowStr.includes(q)).length;
+            })
             : dataRows;
     }, [dataRows, query]);
 
