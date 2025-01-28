@@ -37,7 +37,7 @@ const _input_class = [
     'bg-gray-200', 'border-gray-200', 'text-gray-700',
     'focus:border-purple-500',
     'appearance-none', 'text-sm', 'leading-tight',
-    'border-1', 'rounded mr-3'
+    'border-1', 'rounded', 'mr-1', 'grow'
 ].join(' ');
 const _input_placeholder = 'جستجو...';
 const _next_pg = 'بعدی';
@@ -93,22 +93,37 @@ function Table<T extends Record<string, any>>(
             // table itself:
             h('table', { class: _table },
                 h('caption', { class: _caption },
-                    // table caption
-                    makeCaption(
-                        util.clamp(p0, 1, items.length),
-                        util.clamp(p1, 1, items.length),
-                        items.length, page, query
+                    h('div', { class: 'flex mb-1' },
+                        // table caption
+                        makeCaption(
+                            util.clamp(p0, 1, items.length),
+                            util.clamp(p1, 1, items.length),
+                            items.length, page, query
+                        ),
+                        // next page button
+                        h('button', {
+                            class: _pg_btn,
+                            onClick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
+                        }, _next_pg),
+                        // previous page
+                        h('button', {
+                            class: _pg_btn,
+                            onClick: () => setPage(p => ((p - 1) * pagination) < 1 ? p : --p)
+                        }, _prev_pg),
+                        // search box
+                        enableSearch ? h('input', {
+                            type: 'text',
+                            class: _input_class,
+                            placeholder: searchBoxHint || _input_placeholder,
+                            onChange: ({ target }) => {
+                                const newQuery = target && ('value' in target) && (typeof target.value === 'string')
+                                    ? target.value.trim()
+                                    : undefined;
+                                // update query only if changed
+                                (newQuery !== query) && setQuery(newQuery || '');
+                            }
+                        }) : undefined,
                     ),
-                    // next page button
-                    h('button', {
-                        class: _pg_btn,
-                        onClick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
-                    }, _next_pg),
-                    // previous page
-                    h('button', {
-                        class: _pg_btn,
-                        onClick: () => setPage(p => ((p - 1) * pagination) < 1 ? p : --p)
-                    }, _prev_pg),
                     // columns checkbox
                     ...columns.map(col => customizableColumns ? [
                         /** @ts-ignore */
@@ -125,19 +140,6 @@ function Table<T extends Record<string, any>>(
                         }),
                         h('label', { for: `ch-${col}`, class: 'mr-1' }, columnTitles[col])
                     ] : undefined),
-                    // search box
-                    enableSearch ? h('input', {
-                        type: 'text',
-                        class: _input_class,
-                        placeholder: searchBoxHint || _input_placeholder,
-                        onChange: ({ target }) => {
-                            const newQuery = target && ('value' in target) && (typeof target.value === 'string')
-                                ? target.value.trim()
-                                : undefined;
-                            // update query only if changed
-                            (newQuery !== query) && setQuery(newQuery || '');
-                        }
-                    }) : undefined
                 ),
                 h('thead', { class: _thead },
                     h('tr', null,
