@@ -43,8 +43,8 @@ const diff = {
 export const classInfoKeyTitles: Record<keyof ClassInfo, string> = {
     id: 'شناسه',
     campus: 'دانشکده',
-    campusId: 'شناسه دانشکده',
-    courseId: 'شناسه درس',
+    campusId: 'ش. دانشکده',
+    courseId: 'ش. درس',
     courseTitle: 'درس',
     capacity: 'ظرفیت',
     courseType: 'نوع درس',
