@@ -1,11 +1,6 @@
-import {
-    type DatasetLoaderMap,
-} from '../types';
-
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 
-// ! TODO: localization and custom css
 const _cls = 'flex justify-center mb-4';
 const _load_btn_normal = {
     class: 'bg-blue-500 hover:bg-blue-700 text-white px-2 mr-2 rounded',
@@ -27,7 +22,9 @@ const _input = [
 
 function Navbar(
     this: typeof Navbar,
-    { datasetLoaders }: { datasetLoaders: DatasetLoaderMap }
+    { datasetLoaders }: {
+        datasetLoaders: Record<string, (f: File) => Promise<void>>
+    }
 ) {
     const name = this.constructor.name;
     const datasetTypes = Object.keys(datasetLoaders);
@@ -46,17 +43,17 @@ function Navbar(
             class: _input,
             onChange: (e: any) => setFile(e.target?.files[0])
         }),
-        // dataset loader selection
         h('select', {
-            class: _load_btn_normal.class,
-            onChange: (e: Event) => {
-                // @ts-ignore: mdn says the Event type is correct, no idea.
-                setType(e.target.value)
-            }
-        },
-            datasetTypes.map(
-                value => h('option', {value}, datasetLoaders[value].title)
-            )
+                class: _load_btn_normal.class,
+                onChange: (e: Event) => {
+                    // FIXME: find out why does typescript nag about this line.
+                    // according to MDN the callback signature is correct
+                    // maybe emply a useRef() hook?
+                    // @ts-ignore: mdn says the Event type is correct, no idea.
+                    setType(e.target.value)
+                }
+            },
+            datasetTypes.map(value => h('option', { value }, value))
         ),
         h('button', {
             type: 'button',
@@ -65,8 +62,8 @@ function Navbar(
             onClick: () => {
                 if (!file || !type) return;
                 setBtnProperties(_load_btn_progress);
-                datasetLoaders[type].fn(file)
-                    .then(() => setBtnProperties(_load_btn_normal));
+                datasetLoaders[type](file)
+                    .finally(() => setBtnProperties(_load_btn_normal));
             }
         }, btnProperties.text)
     );

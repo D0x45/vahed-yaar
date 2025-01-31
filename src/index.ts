@@ -22,132 +22,80 @@
 // │ └────────────────────────────────────────┘ │
 // └────────────────────────────────────────────┘
 
-import {
-    type ClassInfo,
-    type DatasetLoaderMap,
-    type ExcelColumnMapper,
-    type RowIDGenerator,
-    type DatasetLoader,
-} from './types';
-
 import { h, render } from 'preact';
 import {
-    type StateUpdater,
+    useMemo,
     useState,
 } from 'preact/hooks';
-
-import * as util from './parser/utils';
-import * as Bustan from './parser/bustan';
-import * as Golestan from './parser/golestan';
-
+import {
+    type ClassInfo,
+    type ClassInfoParser,
+} from './types';
+import * as util from './parser/common';
+import { BustanParser } from './parser/bustan';
+// import * as Golestan from './parser/golestan';
 import Navbar from './components/navbar';
 import DayMajorPlanner from './components/planner';
 import Table from './components/table';
 import Footer from './components/footer';
-
 import './style.css'
-
-function makeLoaderFn(
-    mapper: ExcelColumnMapper,
-    idGen: RowIDGenerator,
-): DatasetLoader['fn'] {
-    return async (file: File) => {
-        const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
-        let result: undefined | ClassInfo[];
-
-        try {
-            switch (ext) {
-                case 'xlsx':
-                    result = await util.parseXLSX(
-                        await file.arrayBuffer(),
-                        mapper, idGen
-                    );
-                    break;
-                default:
-                    throw new Error(`file type '${ext}' is not supported!`)
-            }
-            if (result === undefined || result.length === 0)
-                throw new Error('there was a problem parsing the dataset!');
-        } catch (e) {
-            /** @ts-ignore */
-            alert(`${e.name}: ${e.message}\n${e.stack}`);
-            // throw e; // :D
-        }
-
-        return result;
-    }
-}
-
-function wrapLoaderWithState(
-    loader: DatasetLoader['fn'],
-    setDataRows: StateUpdater<ClassInfo[]>,
-    setPickedRows: StateUpdater<ClassInfo[]>,
-): DatasetLoader['fn'] {
-    return async (file: File) => {
-        const dataset = await loader(file);
-        if (dataset !== undefined) {
-            // @ts-ignore: Not all constituents of type 'StateUpdater<ClassInfo[]>' are callable.
-            setDataRows(dataset as ClassInfo[]);
-            // @ts-ignore: Not all constituents of type 'StateUpdater<ClassInfo[]>' are callable.
-            setPickedRows([] as ClassInfo[]);
-        }
-        return undefined;
-    };
-}
-
-const presetLoaders: DatasetLoaderMap = {
-    'bustan': {
-        title: 'بوستان',
-        fn: makeLoaderFn(Bustan.defaultMappers, Bustan.defaultGetRowId)
-    },
-    'golestan': {
-        title: 'گلستان',
-        fn: makeLoaderFn(Golestan.defaultMapper, Golestan.defaultGetRowId)
-    }
-};
 
 function App(
     this: typeof App, {
-        datasetLoaders,
+        parsers,
         maxCredit,
         pagination,
         enableSearch,
+        searchBoxHint,
         customizableColumns,
-        storePreferencesInLocalStorage,
+        useLocalStorage,
     }: {
-        datasetLoaders: DatasetLoaderMap,
+        parsers: Array<new () => ClassInfoParser>,
         maxCredit: number,
         pagination: number,
         enableSearch?: boolean,
+        searchBoxHint?: string,
         customizableColumns?: boolean,
-        storePreferencesInLocalStorage?: boolean,
+        useLocalStorage?: boolean,
     }
 ) {
     const name = this.constructor.name;
 
     const [dataRows, setDataRows] = useState<ClassInfo[]>([]);
     const [pickedRows, setPickedRows] = useState<ClassInfo[]>([]);
-    const wrappedLoaders: DatasetLoaderMap = {};
 
-    // wrap the given loaders to app states
-    for (const loaderName in datasetLoaders) {
-        wrappedLoaders[loaderName] = {
-            title: datasetLoaders[loaderName].title,
-            fn: wrapLoaderWithState(
-                datasetLoaders[loaderName].fn,
-                setDataRows as StateUpdater<ClassInfo[]>,
-                setPickedRows as StateUpdater<ClassInfo[]>
-            )
-        };
-    }
+    // construct the parsers, bind their result to the component state,
+    // and also catch the exceptions they may throw...
+    const boundParsers = useMemo(() => {
+        return Object.fromEntries(
+            parsers.map(ctor => {
+                const p = new ctor();
+                p.setLocalStorageUse(!!useLocalStorage);
+                return [
+                    p.getDisplayName(),
+                    async function (f: File) {
+                        try {
+                            const parsed = await p.parseFile(f);
+                            setDataRows(parsed);
+                            setPickedRows([]);
+                        } catch (e) {
+                            // TODO: show a better dialog :0
+                            alert(e);
+                            console.error(e);
+                        }
+                    }
+                ];
+            })
+        );
+    }, [parsers]);
 
-    console.debug(`[${name}] datasetLoaders=`, datasetLoaders);
-    console.debug(`[${name}] wrappedLoaders=`, wrappedLoaders);
+    console.debug(`[${name}] parsers=`, parsers);
+    console.debug(`[${name}] boundParsers=`, boundParsers);
     console.debug(`[${name}] pickedRows=`, pickedRows);
     console.debug(`[${name}] dataRows=`, dataRows);
 
     return h('div', { name, class: 'container mx-auto p-2.5' },
-        h(Navbar, { datasetLoaders: wrappedLoaders }),
+        h(Navbar, { datasetLoaders: boundParsers }),
         h(DayMajorPlanner, {
             pickedRows, maxCredit,
             clearPicks: () => setPickedRows([])
@@ -158,7 +106,7 @@ function App(
             pagination,
             enableSearch,
             customizableColumns,
-            storePreferencesInLocalStorage,
+            useLocalStorage,
             isSelected: (row: ClassInfo) => pickedRows.some(c => c.id === row.id),
             setSelect: (row: ClassInfo, isSelected: boolean) => {
                 const alreadyIncludes = pickedRows.some(c => c.id === row.id);
@@ -168,11 +116,8 @@ function App(
                 // row is in the list and was unselected
                 if (!isSelected && alreadyIncludes)
                     setPickedRows(pickedRows.filter(c => c.id !== row.id));
-                // discarded states:
-                //  isSelected && alreadyIncludes
-                // !isSelected && !alreadyIncludes
             },
-            searchBoxHint: 'برای مثال «روز:شنبه» را جستجو کنید...'
+            searchBoxHint
         }),
         h(Footer, null),
     );
@@ -180,12 +125,13 @@ function App(
 
 render(
     h(App, {
-        datasetLoaders: presetLoaders,
+        parsers: [ BustanParser ],
         maxCredit: 24,
         pagination: 30,
         enableSearch: true,
         customizableColumns: true,
-        storePreferencesInLocalStorage: true,
+        useLocalStorage: true,
+        searchBoxHint: 'برای مثال «روز:شنبه» را جستجو کنید...'
     }),
     document.body
 );

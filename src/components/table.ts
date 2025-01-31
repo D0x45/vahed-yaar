@@ -1,14 +1,14 @@
 import { h } from 'preact';
 import { useMemo, useState, useEffect } from 'preact/hooks';
+import * as util from '../parser/common';
 
-import * as util from '../parser/utils';
-
-function makeCaption(start: any, end: any, total: any, page: any, query: any) {
+function makeTablePaginationStr(start: any, end: any, total: any, page: any, query: any) {
     return `نمایش ردیف ${start}-${end} از ${total} (صفحه ${page})`
         + (query ? ` (نتایج جستجو: "${query}")` : '');
 }
 
-// ! TODO: localization and custom css
+const STORAGE_KEY0 = 'Table_hiddenColumns';
+
 const _table = [
     'w-full', 'text-sm',
     'text-center', 'text-gray-500'
@@ -48,7 +48,7 @@ function Table<T extends Record<string, any>>(
         dataRows, columnTitles, pagination,
         customizableColumns,
         enableSearch, isSelected, setSelect,
-        searchBoxHint, storePreferencesInLocalStorage
+        searchBoxHint, useLocalStorage
     }: {
         dataRows: T[],
         columnTitles: Record<keyof T, string>,
@@ -58,7 +58,7 @@ function Table<T extends Record<string, any>>(
         isSelected?: ((row: T) => boolean),
         setSelect?: ((row: T, x: boolean) => void),
         searchBoxHint?: string,
-        storePreferencesInLocalStorage?: boolean,
+        useLocalStorage?: boolean,
     }
 ) {
     const name = this.constructor.name;
@@ -70,9 +70,9 @@ function Table<T extends Record<string, any>>(
     const [query, setQuery] = useState('');
 
     // use localStorage to store hiddenCols
-    if (!!storePreferencesInLocalStorage) {
+    if (!!useLocalStorage) {
         useEffect(() => {
-            const storedHiddenCols = localStorage.getItem('hiddenColumns');
+            const storedHiddenCols = localStorage.getItem(STORAGE_KEY0);
             if (storedHiddenCols !== null) {
                 const p = JSON.parse(storedHiddenCols);
                 setHiddenCols(p);
@@ -80,10 +80,7 @@ function Table<T extends Record<string, any>>(
         }, []);
 
         useEffect(() => {
-            localStorage.setItem(
-                'hiddenColumns',
-                JSON.stringify(hiddenCols)
-            );
+            localStorage.setItem(STORAGE_KEY0,JSON.stringify(hiddenCols));
         }, [hiddenCols]);
     }
 
@@ -105,6 +102,7 @@ function Table<T extends Record<string, any>>(
     const p1 = pagination * page;
 
     console.debug(`[${name}] hiddenCols=`, hiddenCols);
+    console.debug(`[${name}] useLocalStorage=`, useLocalStorage);
     console.debug(`[${name}] query=`, query);
     console.debug(`[${name}] page=`, page);
     console.debug(`[${name}] columns=`, columns);
@@ -119,7 +117,7 @@ function Table<T extends Record<string, any>>(
                 h('caption', { class: _caption },
                     h('div', { class: 'flex mb-1' },
                         // table caption
-                        makeCaption(
+                        makeTablePaginationStr(
                             util.clamp(p0, 1, items.length),
                             util.clamp(p1, 1, items.length),
                             items.length, page, query
