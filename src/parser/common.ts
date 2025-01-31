@@ -1,12 +1,8 @@
 import {
     type DayOfWeek,
     type ClassInfo,
-    type ExcelColumnMapper,
-    type RowIDGenerator,
     type Time,
 } from '../types';
-
-import * as ExcelJS from 'exceljs';
 
 export const defaultEmptyCell = '-';
 
@@ -100,6 +96,22 @@ export function dayFromStr(farsi: string): DayOfWeek | undefined {
     return undefined;
 }
 
+export function newClassInfo(): ClassInfo {
+    return {
+        id: 0,
+        campusId: 0,
+        courseId: 0,
+        capacity: 0,
+        courseTitle: '',
+        courseType: undefined,
+        campus: '',
+        credit: undefined,
+        teachers: [],
+        exams: [],
+        sessions: [],
+    };
+}
+
 export function dayToStr(day?: DayOfWeek): string {
     if (day === undefined) return '-';
     return daysOfWeek[day];
@@ -110,96 +122,16 @@ export function padLeft(a: any, len = 2, p = '0'): string {
     return p.repeat(Math.abs(len-s.length)) + s;
 }
 
-export async function parseXLSX(
-    input: ArrayBuffer,
-    mappers: ExcelColumnMapper,
-    getUniqueId: RowIDGenerator
-): Promise<undefined | ClassInfo[]> {
-    const wb = new ExcelJS.Workbook;
-
-    console.debug('[UTIL] loading excel file...');
-
-    await wb.xlsx.load(
-        input,
-        { ignoreNodes: ['dataValidations'] }
-    );
-
-    if (wb.worksheets.length === 0) {
-        console.error('excel workbook has zero worksheets.');
-        return undefined;
-    }
-
-    const sheet = wb.worksheets[0];
-    const items: ClassInfo[] = [];
-    const idxMap: Record<string, number> = {};
-
-    for (
-        // indexing starts at 1
-        // also first row is the header
-        // so index 2 is the first row
-        let i = 2;
-        i <= sheet.actualRowCount;
-        ++i
-    ) {
-        const row = sheet.getRow(i);
-        const values = row.values;
-
-        // check for invalid row
-        if (!row.hasValues || !Array.isArray(values) || values.length < mappers.length) {
-            console.warn(`row ${i} has length of ${values.length} which is less than mappers.length=${mappers.length}`);
-            continue;
-        }
-
-        const rowId = getUniqueId(
-               values.slice(1)
-            // ^ skip the first item, since ExcelJS yields a null value at index 0
-            // https://github.com/exceljs/exceljs/issues/698
-            // indexing in xlsx files starts from number 1 (eg. A1 points to row 1 and column 1)
-            // setting null at the start is much easier than always recalculating from 0 based to 1 based indexing
-        );
-        const itemIdx = typeof idxMap[rowId] === 'number'
-            // an item with the same id exists, yay!
-            ? idxMap[rowId]
-            // acquire the last index of the array since we are pushing items to the end
-            : (idxMap[rowId] = items.length);
-
-        console.debug(`[UTIL] i=${i}, rowId=${rowId}, itemIdx=${itemIdx}`);
-
-        // init the empty class info
-        if (items[itemIdx] === undefined)
-            items[itemIdx] = {
-                id: 0,
-                campusId: 0,
-                courseId: 0,
-                capacity: 0,
-                courseTitle: '',
-                courseType: undefined,
-                campus: '',
-                credit: undefined,
-                teachers: [],
-                exams: [],
-                sessions: [],
-            };
-
-        mappers.forEach(
-            (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
-                values[index + 1],
-                //           ^^^
-                // ExcelJS gives a null value for index 0 of every row.values
-                items[itemIdx]
-            )
-        );
-    }
-
-    return items;
-}
-
 export function timeEq(a: Time, b: Time): boolean {
     return (a.hour === b.hour)
         && (a.minute === b.minute);
 }
 
-export function timeToStr(hour: number, minute: number, forceMinute = false): string {
+export function timeToStr(
+    hour: number,
+    minute: number,
+    forceMinute = false
+): string {
     let s = !forceMinute ? `${hour}` : padLeft(hour || 0);
     if (minute || forceMinute)
         s += ':' + padLeft(minute || 0);
@@ -221,13 +153,13 @@ export function defaultSessionToStr(
           t1 = timeToStr(this.ends.hour, this.ends.minute, !!this.__full_time__),
           d = dayToStr(this.day);
     let tmp = `${d} ${t0} تا ${t1} `;
-    // this is just a stupid workaround
+    // FIXME: this is just a stupid workaround
     if (this.place && this.__append_place__) tmp += `(${this.place}) `;
     if (this.dates) tmp += this.dates === 'odd' ? '[فرد]' : '[زوج]';
     return tmp.trim();
 }
 
-// TODO: screw around type system in order to find a way
+// FIXME: screw around type system in order to find a way
 // of explicitly declaring the return type instead of compiler inferring it...
 export function customSessionStr<
     T extends ClassInfo['sessions'][0],
@@ -340,9 +272,10 @@ export function makeCSV(items: ClassInfo[]): Blob {
             // @ts-ignore: sigh... i don't even know why it's not deducing the type.
             .map((k: keyof ClassInfo) => classInfoKeyTitles[k])
             .join(','),
+            // FIXME: escaping commas
         ...items.map(c => Object.values(c).join(','))
     ].join('\r\n'));
-    // TODO: this probably needs a better implementation
+
     return new Blob(['\uFEFF', csv_data], {
         type: 'text/csv;charset=utf-8'
     });

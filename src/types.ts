@@ -71,7 +71,10 @@ export interface ClassInfo {
     sessions: Array<{
         starts: Time,
         ends: Time,
-        /** whether the session is created on odd, even or all dates. undefined means all */
+        /**
+         * whether the session is created on odd, even or all dates.
+         * undefined means both.
+         */
         dates?: 'odd' | 'even',
         day?: DayOfWeek,
         place?: string,
@@ -83,46 +86,19 @@ export interface ClassInfo {
     exams: Array<Epoch & Time & { ends?: Time }>
 };
 
-type _Assigner = (value: any, o: ClassInfo) => any;
-
-/**
- * array of functions that take the raw `value` and the `output` object by reference
- * and parse that value and assign it to the `o` object
- *
- * each item in this array corresponds to a column:
- *
- * index `0` is column `A`,
- *
- * index `1` is column `B` and so on...
- *
- * NOTE: passing `undefined` discards that column
- */
-export type ExcelColumnMapper = Array<undefined | _Assigner>;
-
 /**
  * a function which will be bound to the field value on its creation inside the parser
  * that allows implementing custom string representation
  */
-export type ClassInfoFieldStringifier<FieldName extends keyof ClassInfo> = (
+export type ClassInfoFieldToStr<FieldName extends keyof ClassInfo> = (
     this: ClassInfo[FieldName] extends any[]
         // if it's an array then we need to extract the value type
         ? ClassInfo[FieldName][0]
         : ClassInfo[FieldName]
 ) => string;
 
-/**
- * a function that determines a unique value id for the given row values.
- * the parser uses this to prevent data duplication
- */
-export type RowIDGenerator = (rowValues: any[]) => string;
-
-/**
- * descriptor type for dataset loaders.
- * functions that take raw `File`s and return `Array<T>` on success and `undefined` on failure
- */
-export type DatasetLoader = {
-    title: string,
-    fn: (f: File) => Promise<undefined | ClassInfo[]>
-};
-
-export type DatasetLoaderMap = Record<string, DatasetLoader>;
+export interface ClassInfoParser {
+    parseFile(f: File): Promise<ClassInfo[]>;
+    getDisplayName(): string;
+    setLocalStorageUse(allowed: boolean): void;
+}

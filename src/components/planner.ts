@@ -2,10 +2,8 @@ import {
     type Time,
     type ClassInfo,
 } from '../types';
-
 import { h } from 'preact';
-
-import * as util from '../parser/utils';
+import * as util from '../parser/common';
 
 const _thead = 'text-xs text-gray-700 uppercase bg-gray-50';
 const _alert = {
