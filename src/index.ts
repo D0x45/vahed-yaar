@@ -71,7 +71,7 @@ function makeLoaderFn(
         } catch (e) {
             /** @ts-ignore */
             alert(`${e.name}: ${e.message}\n${e.stack}`);
-            throw e; // :D
+            // throw e; // :D
         }
 
         return result;
