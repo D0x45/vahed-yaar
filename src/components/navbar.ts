@@ -46,10 +46,17 @@ function Navbar(
             class: _input,
             onChange: (e: any) => setFile(e.target?.files[0])
         }),
-        h('select', { class: _load_btn_normal.class },
-            datasetTypes.map(value => h('option', {
-                value, onClick: () => setType(value)
-            }, datasetLoaders[value].title))
+        // dataset loader selection
+        h('select', {
+            class: _load_btn_normal.class,
+            onChange: (e: Event) => {
+                // @ts-ignore: mdn says the Event type is correct, no idea.
+                setType(e.target.value)
+            }
+        },
+            datasetTypes.map(
+                value => h('option', {value}, datasetLoaders[value].title)
+            )
         ),
         h('button', {
             type: 'button',
