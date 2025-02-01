@@ -10,7 +10,7 @@ module.exports = {
             filename: 'index.html',
         }),
         new webpack.DefinePlugin({
-            __VERSION__: JSON.stringify(process.env.CF_PAGES_COMMIT_SHA || ':0'),
+            __VERSION__: JSON.stringify((process.env.CF_PAGES_COMMIT_SHA || '0000000').substring(0, 7)),
         }),
     ],
     output: {

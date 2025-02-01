@@ -1,17 +1,16 @@
 import { h } from 'preact';
 
 function Footer() {
+    // @ts-ignore: this will be injected with webpack DefinePlugin
+    const ver = __VERSION__;
+
     return h(
         'div',
-        { 'class': 'flex justify-between mb-4 text-gray-300' },
-        // TODO: put git version here
-        h('span', null,
-            // @ts-ignore: this will be injected with webpack DefinePlugin
-            __VERSION__),
+        { 'class': 'flex justify-center mb-4 text-gray-300' },
         h(
             'a',
-            { href: 'https://github.com/d0x45', class: 'underline' },
-            'made with frustration by @d0x45'
+            { href: `https://github.com/d0x45/vahed-yaar/commit/${ver}`, class: 'underline' },
+            ver
         ),
     );
 }
