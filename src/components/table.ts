@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useMemo, useState, useEffect } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import * as util from '../parser/common';
 
 function makeTablePaginationStr(start: any, end: any, total: any, page: any, query: any) {
@@ -67,6 +67,7 @@ function Table<T extends Record<string, any>>(
 
     const [page, setPage] = useState(1);
     const [hiddenCols, setHiddenCols] = useState<string[]>([]);
+    const [searchResults, setSearchResults] = useState<T[]>([]);
     const [query, setQuery] = useState('');
 
     // use localStorage to store hiddenCols
@@ -84,19 +85,22 @@ function Table<T extends Record<string, any>>(
         }, [hiddenCols]);
     }
 
-    const items = useMemo<Array<Record<keyof typeof columnTitles, any>>>(() => {
-        // reset page on change
+    useEffect(() => {
         setPage(1);
-        // split query into subqueries
-        const subqueries = query.trim().split(' ');
-        // ! TODO: improve generic search
-        return query
-            ? dataRows.filter(r => {
-                const rowStr = JSON.stringify(r);
-                return !!subqueries.filter(q => rowStr.includes(q)).length;
+        const subQueries = query.trim().split(' ').filter(s => !!s.length);
+
+        console.debug(`[${name}] subQueries=`, subQueries);
+
+        if (subQueries.length === 0)
+            setSearchResults(dataRows);
+
+        setSearchResults(
+            dataRows.filter(r => {
+                const rowJSON = JSON.stringify(r);
+                return subQueries.every(q => rowJSON.includes(q));
             })
-            : dataRows;
-    }, [dataRows, query]);
+        );
+    }, [ dataRows, query ]);
 
     const p0 = pagination * (page - 1);
     const p1 = pagination * page;
@@ -118,14 +122,14 @@ function Table<T extends Record<string, any>>(
                     h('div', { class: 'flex mb-1' },
                         // table caption
                         makeTablePaginationStr(
-                            util.clamp(p0, 1, items.length),
-                            util.clamp(p1, 1, items.length),
-                            items.length, page, query
+                            util.clamp(p0, 1, searchResults.length),
+                            util.clamp(p1, 1, searchResults.length),
+                            searchResults.length, page, query
                         ),
                         // next page button
                         h('button', {
                             class: _pg_btn,
-                            onClick: () => setPage(p => ((p * pagination) < items.length) ? ++p : p)
+                            onClick: () => setPage(p => ((p * pagination) < searchResults.length) ? ++p : p)
                         }, _next_pg),
                         // previous page
                         h('button', {
@@ -176,7 +180,7 @@ function Table<T extends Record<string, any>>(
                     )
                 ),
                 h('tbody', null,
-                    ...items.slice(p0, p1).map(row => {
+                    ...searchResults.slice(p0, p1).map(row => {
                         return h('tr', { class: 'odd:bg-white even:bg-gray-100 border border-gray-200' },
                             // a checkbox cell if any selection utility was provided
                             (setSelect && isSelected) ? h('td', null,
