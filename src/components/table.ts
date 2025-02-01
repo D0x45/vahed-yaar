@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useMemo } from 'preact/hooks';
 import * as util from '../parser/common';
 
 function makeTablePaginationStr(start: any, end: any, total: any, page: any, query: any) {
@@ -67,7 +67,6 @@ function Table<T extends Record<string, any>>(
 
     const [page, setPage] = useState(1);
     const [hiddenCols, setHiddenCols] = useState<string[]>([]);
-    const [searchResults, setSearchResults] = useState<T[]>([]);
     const [query, setQuery] = useState('');
 
     // use localStorage to store hiddenCols
@@ -85,22 +84,21 @@ function Table<T extends Record<string, any>>(
         }, [hiddenCols]);
     }
 
-    useEffect(() => {
-        setPage(1);
+    const searchResults = useMemo(() => {
         const subQueries = query.trim().split(' ').filter(s => !!s.length);
 
         console.debug(`[${name}] subQueries=`, subQueries);
 
         if (subQueries.length === 0)
-            setSearchResults(dataRows);
+            return dataRows;
 
-        setSearchResults(
-            dataRows.filter(r => {
-                const rowJSON = JSON.stringify(r);
-                return subQueries.every(q => rowJSON.includes(q));
-            })
-        );
-    }, [ dataRows, query ]);
+        return dataRows.filter(r => {
+            const rowJSON = JSON.stringify(r);
+            return subQueries.every(q => rowJSON.includes(q));
+        });
+    }, [dataRows, query]);
+
+    useEffect(() => setPage(1), [ searchResults ]);
 
     const p0 = pagination * (page - 1);
     const p1 = pagination * page;
