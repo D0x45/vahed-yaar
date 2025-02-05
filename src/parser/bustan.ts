@@ -153,6 +153,7 @@ export class BustanParser implements ClassInfoParser {
 
     protected processFieldLessonWorksheet(ws: ExcelJS.Worksheet) {
         console.debug(`[${this.constructor.name}] processFieldLessonWorksheet(...)`);
+
         for (
             // indexing starts at 1
             // also first row is the header
@@ -175,6 +176,10 @@ export class BustanParser implements ClassInfoParser {
             );
             this.creditMappings[courseStandardId] = credits;
         }
+
+        // apply the credits to the current dataset
+        for (const clsInf of this.data)
+            clsInf.credit = this.creditMappings[clsInf.courseId];
 
         // store in local storage if allowed
         if (this.useLocalStorage)
