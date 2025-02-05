@@ -123,7 +123,7 @@ export class GolestanParser implements ClassInfoParser {
         ) return [undefined, undefined, undefined];
 
         console.debug(
-            `[${this.constructor.name}] parseExamOrSession(raw=`, raw,
+            '[GolestanParser] parseExamOrSession(raw=', raw,
             ',sessionToStr=', sessionToStr,
             ',examToStr=', examToStr, ')'
         );
@@ -173,7 +173,7 @@ export class GolestanParser implements ClassInfoParser {
             }
 
             console.debug(
-                `[${this.constructor.name}]`,
+                '[GolestanParser]',
                 `firstColonIndex=${firstColonIndex}\n`,
                 `sessionTypeIdentifier=${sessionTypeIdentifier}\n`,
                 `timeSpanStr=${timeSpanStr[0]}\n`,
@@ -229,8 +229,7 @@ export class GolestanParser implements ClassInfoParser {
             exam.toString = examToStr || common.defaultExamToStr;
 
             console.debug(
-                `[${this.constructor.name}]`,
-                'exam=',exam,'\n',
+                '[GolestanParser] exam=',exam,'\n',
                 `timeSpanValues=`,timeSpanValues
             );
 
@@ -249,7 +248,7 @@ export class GolestanParser implements ClassInfoParser {
             // also first row is the header
             // so index 2 is the actual first row
             let i = 2, idxMap: Record<string, number> = {};
-            i <= ws.actualRowCount;
+            i <= ws.rowCount;
             ++i
         ) {
             const row = ws.getRow(i);
@@ -257,15 +256,15 @@ export class GolestanParser implements ClassInfoParser {
 
             // check for invalid row
             if (!row.hasValues || !Array.isArray(values) || values.length < GolestanParser.EXCEL_COLUMN_MAPPERS.length) {
-                console.warn(
-                    `row ${i} has length of ${values.length} which is less than` +
+                console.error(
+                    `row ${i} has length of ${values.length} which is less than ` +
                     `mappers.length=${GolestanParser.EXCEL_COLUMN_MAPPERS.length}`
                 );
                 continue;
             }
 
             // column E contains course id and class id
-            const rowId = +values[5]! || 0;
+            const rowId = String(values[5]!);
 
             const itemIdx = typeof idxMap[rowId] === 'number'
                 // an item with the same id exists, yay!
@@ -273,13 +272,13 @@ export class GolestanParser implements ClassInfoParser {
                 // acquire the last index of the array since we are pushing items to the end
                 : (idxMap[rowId] = this.data.length);
 
-            console.debug(`[UTIL] i=${i}, rowId=${rowId}, itemIdx=${itemIdx}`);
+            console.debug(`[${this.constructor.name}] i=${i}, rowId=${rowId}, itemIdx=${itemIdx}`);
 
             // init the empty class info
             if (this.data[itemIdx] === undefined)
                 this.data[itemIdx] = common.newClassInfo();
 
-                GolestanParser.EXCEL_COLUMN_MAPPERS.forEach(
+            GolestanParser.EXCEL_COLUMN_MAPPERS.forEach(
                 (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
                     values[index + 1],
                     //           ^^^
@@ -290,7 +289,7 @@ export class GolestanParser implements ClassInfoParser {
         }
     }
 
-    public setLocalStorageUse(allowed: boolean): void { }
+    public setLocalStorageUse(_allowed: boolean): void { }
 
     public getDisplayName(): string {
         return 'گلستان';

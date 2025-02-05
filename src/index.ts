@@ -33,7 +33,7 @@ import {
 } from './types';
 import * as util from './parser/common';
 import { BustanParser } from './parser/bustan';
-// import * as Golestan from './parser/golestan';
+import { GolestanParser } from './parser/golestan';
 import Navbar from './components/navbar';
 import DayMajorPlanner from './components/planner';
 import Table from './components/table';
@@ -125,7 +125,7 @@ function App(
 
 render(
     h(App, {
-        parsers: [ BustanParser ],
+        parsers: [ BustanParser, GolestanParser ],
         maxCredit: 24,
         pagination: 30,
         enableSearch: true,

@@ -145,7 +145,7 @@ export class BustanParser implements ClassInfoParser {
             // check for pre-existing creditMappings and assign the credit :)
             const itemCourseId = this.data[itemIdx].courseId.toString();
             if (itemCourseId in this.creditMappings) {
-                console.debug(`[${this.constructor.name}] courseId=${itemCourseId} has previous credit=${this.creditMappings[itemCourseId]}`);
+                console.debug(`[${this.constructor.name}] courseId=${itemCourseId} has stored credit=${this.creditMappings[itemCourseId]}`);
                 this.data[itemIdx].credit = this.creditMappings[itemCourseId];
             }
         }
