@@ -12,27 +12,41 @@ import * as ExcelJS from 'exceljs';
 const STORAGE_KEY0 = 'BustanParser_CreditMappings';
 
 export class BustanParser implements ClassInfoParser {
+    protected static EXCEL_COLUMN_MAPPERS: Array<undefined|((v:any, o:ClassInfo)=>any)> = [
+        /* A */ (value, o) => o.courseTitle = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
+        /* B */ (value, o) => o.courseId = +value || 0,
+        /* C */ undefined, // discarded column
+        /* D */ (value, o) => o.courseType = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
+        /* E */ (value, o) => o.id = +value || 0,
+        /* F */ (value, o) => o.capacity = +value || 0,
+        /* G */ (value, o) => o.campusId = +value || 0,
+        /* H */ (value, o) => o.campus = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
+        /* I */ (value, o) => value && o.teachers.push(common.sanitizeFarsi(value)),
+        /* J */ (value, o) => o.sessions = BustanParser.parseSessions(value),
+        /* K */ (value, o) => o.exams = BustanParser.parseExams(value),
+        // the rest are also discarded
+    ];
+
     protected useLocalStorage: boolean = false;
     protected data: ClassInfo[];
     protected creditMappings: Record</* courseId */ string, number>;
-    protected sessionsToStr: ClassInfoFieldToStr<'sessions'>;
-    protected examsToStr: ClassInfoFieldToStr<'exams'>;
 
     constructor() {
         console.debug(`[${this.constructor.name}] constructor()`);
         this.data = [];
-        this.sessionsToStr = common.defaultSessionToStr;
-        this.examsToStr = common.defaultExamToStr;
         this.creditMappings = {};
     }
 
-    protected parseExams(raw: any): ClassInfo['exams'] {
+    protected static parseExams(
+        raw: any,
+        examsToStr?: ClassInfoFieldToStr<'exams'>
+    ): ClassInfo['exams'] {
         if (
             !raw || typeof raw !== 'string'
             || raw.length === 0 || raw === common.defaultEmptyCell
         ) return [];
 
-        console.debug(`[${this.constructor.name}] parseExams(raw=`, raw, ')');
+        console.debug(`[${this.constructor.name}] parseExams(raw=`, raw, ',examsToStr=',examsToStr,')');
 
         const [a, _, b] = raw.split(' ');
         const d = a.split('/');
@@ -45,18 +59,21 @@ export class BustanParser implements ClassInfoParser {
             hour:   +t[0] || 0,
             minute: +t[1] || 0
         };
-        exam.toString = this.examsToStr;
+        exam.toString = examsToStr || common.defaultExamToStr;
 
         return [ exam ];
     }
 
-    protected parseSessions(raw: any): ClassInfo['sessions'] {
+    protected static parseSessions(
+        raw: any,
+        sessionsToStr?: ClassInfoFieldToStr<'sessions'>
+    ): ClassInfo['sessions'] {
         if (
             !raw || typeof raw !== 'string'
             || raw.length === 0 || raw === common.defaultEmptyCell
         ) return [];
 
-        console.debug(`[${this.constructor.name}] parseSessions(raw=`, raw, ')');
+        console.debug(`[${this.constructor.name}] parseSessions(raw=`, raw, ',sessionsToStr=',sessionsToStr,')');
 
         const [s, e] = [...raw.matchAll(/[0-9]{2}:[0-9]{2}/g)]
             .map(x => x[0].split(':').map(a => +a || 0));
@@ -76,30 +93,13 @@ export class BustanParser implements ClassInfoParser {
                 __day_str: 'روز:' + common.dayToStr(this.day)
             };
         };
-        session.toString = this.sessionsToStr;
+        session.toString = sessionsToStr || common.defaultSessionToStr;
 
         return [ session ];
     }
 
     protected processClassInfoWorksheet(ws: ExcelJS.Worksheet) {
-        console.debug(`[${this.constructor.name}] porcessClassInfoWorksheet(...)`);
-
-        // is this inefficient?
-        // let's hope the js engine optimizes this :\
-        const mappers: Array<undefined|((v:any, o:ClassInfo)=>any)> = [
-            /* A */ (value, o) => o.courseTitle = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
-            /* B */ (value, o) => o.courseId = +value || 0,
-            /* C */ undefined, // discarded column
-            /* D */ (value, o) => o.courseType = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
-            /* E */ (value, o) => o.id = +value || 0,
-            /* F */ (value, o) => o.capacity = +value || 0,
-            /* G */ (value, o) => o.campusId = +value || 0,
-            /* H */ (value, o) => o.campus = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
-            /* I */ (value, o) => value && o.teachers.push(common.sanitizeFarsi(value)),
-            /* J */ (value, o) => o.sessions = this.parseSessions(value),
-            /* K */ (value, o) => o.exams = this.parseExams(value),
-            // the rest are also discarded
-        ];
+        console.debug(`[${this.constructor.name}] processClassInfoWorksheet(...)`);
 
         // clear the temporary array, might have previous parsed data.
         this.data.length = 0;
@@ -116,12 +116,15 @@ export class BustanParser implements ClassInfoParser {
             const values = row.values;
 
             // check for invalid row
-            if (!row.hasValues || !Array.isArray(values) || values.length < mappers.length) {
-                console.warn(`[${this.constructor.name}] row ${i} has length of ${values.length} which is less than mappers.length=${mappers.length}`);
+            if (!row.hasValues || !Array.isArray(values) || values.length < BustanParser.EXCEL_COLUMN_MAPPERS.length) {
+                console.warn(
+                    `[${this.constructor.name}] row ${i} has length of ${values.length}` +
+                    `which is less than mappers.length=${BustanParser.EXCEL_COLUMN_MAPPERS.length}`
+                );
                 continue;
             }
 
-            const rowId = +values[5]!;
+            const rowId = +values[5]! || 0;
 
             console.debug(`[${this.constructor.name}] i=${i}, rowId=${rowId}, itemIdx=${itemIdx}`);
 
@@ -130,7 +133,7 @@ export class BustanParser implements ClassInfoParser {
                 this.data[itemIdx] = common.newClassInfo();
 
             // map each column/cell to the corresponding object field
-            mappers.forEach(
+            BustanParser.EXCEL_COLUMN_MAPPERS.forEach(
                 (assignerFn, index) => (assignerFn instanceof Function) && assignerFn(
                     values[index + 1],
                     //           ^^^
