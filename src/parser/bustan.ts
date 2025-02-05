@@ -81,7 +81,7 @@ export class BustanParser implements ClassInfoParser {
         return [ session ];
     }
 
-    protected porcessClassInfoWorksheet(ws: ExcelJS.Worksheet) {
+    protected processClassInfoWorksheet(ws: ExcelJS.Worksheet) {
         console.debug(`[${this.constructor.name}] porcessClassInfoWorksheet(...)`);
 
         // is this inefficient?
@@ -228,7 +228,7 @@ export class BustanParser implements ClassInfoParser {
 
         switch (wb.worksheets[0].actualColumnCount) {
             case 12:
-                this.porcessClassInfoWorksheet(wb.worksheets[0]);
+                this.processClassInfoWorksheet(wb.worksheets[0]);
                 break;
             case 14:
                 this.processFieldLessonWorksheet(wb.worksheets[0]);
