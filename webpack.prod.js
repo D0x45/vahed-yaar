@@ -16,7 +16,6 @@ module.exports = merge(common, {
                             'console.debug',
                             'console.warn',
                             'console.log',
-                            'console.error',
                         ]
                     }
                 }
