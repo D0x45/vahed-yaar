@@ -159,27 +159,6 @@ export function defaultSessionToStr(
     return tmp.trim();
 }
 
-// FIXME: screw around type system in order to find a way
-// of explicitly declaring the return type instead of compiler inferring it...
-export function customSessionStr<
-    T extends ClassInfo['sessions'][0],
->(
-    itemOrItems: Array<T> | T,
-    appendPlace?: boolean,
-    fullTime?: boolean
-) {
-    // bind the modified Session with corresponding flags
-    const mapper = (item: T) =>
-        defaultSessionToStr.call({
-            ...item,
-            __append_place__: appendPlace,
-            __full_time__: fullTime
-        });
-    return Array.isArray(itemOrItems)
-        ? itemOrItems.map(mapper)
-        : mapper(itemOrItems as T);
-}
-
 export function defaultExamToStr(this: ClassInfo['exams'][0]): string {
     let tmp = `${this.year}/${padLeft(this.month)}/${padLeft(this.day)} ${padLeft(this.hour)}:${padLeft(this.minute)}`;
 
