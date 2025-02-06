@@ -29,12 +29,12 @@ export interface ClassInfo {
      * bustan: `کد‌گروه‌درسي`,
      * golestan: `شماره و گروه درس`
      */
-    id: number,
+    id: string,
     /**
      * bustan: `كداستاندارد`,
      * golestan: `شماره و گروه درس`
      */
-    courseId: number,
+    courseId: string,
     /**
      * bustan: `درس`,
      * golestan: `نام درس`

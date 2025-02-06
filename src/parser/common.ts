@@ -98,9 +98,9 @@ export function dayFromStr(farsi: string): DayOfWeek | undefined {
 
 export function newClassInfo(): ClassInfo {
     return {
-        id: 0,
+        id: '0',
         campusId: 0,
-        courseId: 0,
+        courseId: '0',
         capacity: 0,
         courseTitle: '',
         courseType: undefined,

@@ -25,8 +25,16 @@ export class GolestanParser implements ClassInfoParser {
             if (typeof value !== 'string') return;
 
             const [courseId, classId] = value.split('_');
-            o.courseId = +courseId || 0;
-            o.id = +`${courseId}${classId}` || 0;
+
+            if (!courseId.length || !classId.length) {
+                console.error('[GolestanParser] invalid value for column E =', value);
+                o.courseId = '0';
+                o.id = '0';
+                return;
+            }
+
+            o.courseId = courseId;
+            o.id = `${courseId}${classId}`;
         },
         /* F */ (value, o) => o.courseTitle = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
         /* G */ (value, o) => o.credit = +value || 0,

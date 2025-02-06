@@ -14,10 +14,10 @@ const STORAGE_KEY0 = 'BustanParser_CreditMappings';
 export class BustanParser implements ClassInfoParser {
     protected static EXCEL_COLUMN_MAPPERS: Array<undefined|((v:any, o:ClassInfo)=>any)> = [
         /* A */ (value, o) => o.courseTitle = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
-        /* B */ (value, o) => o.courseId = +value || 0,
+        /* B */ (value, o) => o.courseId = (typeof value === 'string' && value.length) ? value : '0',
         /* C */ undefined, // discarded column
         /* D */ (value, o) => o.courseType = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
-        /* E */ (value, o) => o.id = +value || 0,
+        /* E */ (value, o) => o.id = (typeof value === 'string' && value.length) ? value : '0',
         /* F */ (value, o) => o.capacity = +value || 0,
         /* G */ (value, o) => o.campusId = +value || 0,
         /* H */ (value, o) => o.campus = value ? common.sanitizeFarsi(value) : common.defaultEmptyCell,
