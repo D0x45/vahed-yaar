@@ -57,7 +57,12 @@ export const daysOfWeek = [
     'سه شنبه',
     'چهارشنبه',
     'پنجشنبه',
-    'جمعه'
+    'جمعه',
+    // the 8th element is used for the courses that have no class session
+    // so they could be displayed on the planner too!
+    // since the DayMajorPlanner pushes items without sessions onto the last day.
+    // you can remove this element so that those items show up in FRIDAY
+    'بدون کلاس'
 ];
 
 export function sanitizeFarsi(str: string): string {

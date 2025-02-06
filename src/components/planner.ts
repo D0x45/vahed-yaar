@@ -33,14 +33,31 @@ function DayMajorPlanner(
     }
 ) {
     const name = this.constructor.name;
+    const lastDayIndexOfWeekdays = util.daysOfWeek.length-1;
 
-    const picksByDay: ClassInfo[][] = Array.from({ length: 7 }, _ => []);
+    const picksByDay: ClassInfo[][] = Array.from({
+        length: util.daysOfWeek.length
+    }, _ => []);
     const invalidOrNoData = pickedRows.length === 0;
     let totalPickedCredit = 0;
 
     if (invalidOrNoData === false) {
         for (const p of pickedRows) {
             totalPickedCredit += (p.credit || 0);
+
+            // a course without any session should be listed at
+            // a different section
+            if (p.sessions.length === 0) {
+                picksByDay[lastDayIndexOfWeekdays].push(p);
+                //         ^^^^^^^^^^^^^^^^^^^^^^
+                // pushing the items without any sessions
+                // to the last day of the week
+                // this day might be 'FRIDAY'
+                // since you might push a phony day to util.daysOfWeek
+                // as i've done :p
+                continue;
+            }
+
             for (const s of p.sessions) {
                 // undefined day or duplicate item in the same day:
                 if (
@@ -75,9 +92,8 @@ function DayMajorPlanner(
                                     // meow
                                     window.open(
                                         window.URL.createObjectURL(
-                                            util.makeCSV(
-                                                picksByDay.flat(1)
-                                            )
+                                            // TODO: find a way to sort them by their session days
+                                            util.makeCSV(pickedRows)
                                         )
                                     );
                                 }
@@ -102,8 +118,13 @@ function DayMajorPlanner(
                                 )
                             );
 
-                            // check the sessions
-                            for (const s of item.sessions) {
+                            // create empty 00:00-00:00 sessions for those classes that have none
+                            // this will allow displaying them on the planner
+                            const sessions = (item.sessions.length === 0 && day === lastDayIndexOfWeekdays)
+                                ? [ { starts: {hour:0,minute:0}, ends: {hour:0,minute:0}, place: '', dates: undefined, day: lastDayIndexOfWeekdays } ]
+                                : item.sessions;
+
+                            for (const s of sessions) {
                                 if (s.day !== day) continue;
                                 const timeStr = '[' + util.timeToStr(s.starts.hour, s.starts.minute, true)
                                     + '-' + util.timeToStr(s.ends.hour, s.ends.minute, true)
